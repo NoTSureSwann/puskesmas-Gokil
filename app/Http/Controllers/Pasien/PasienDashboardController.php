@@ -15,6 +15,8 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
@@ -225,5 +227,91 @@ class PasienDashboardController extends Controller
     {
         Auth::user()->unreadNotifications->markAsRead();
         return back()->with('status', 'Semua notifikasi ditandai telah dibaca.');
+    }
+
+    /**
+     * Analisis Keluhan Penyakit (menggunakan Groq API - LLaMA)
+     */
+    public function analyzeSymptoms(Request $request)
+    {
+        $request->validate([
+            'keluhan' => 'required|string'
+        ]);
+
+        $keluhan = $request->keluhan;
+        
+        $apiKey = env('GROQ_API_KEY');
+        $model = env('GROQ_MODEL', 'llama-3.3-70b-versatile');
+
+        if (!$apiKey) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'API Key Groq belum dikonfigurasi.'
+            ], 500);
+        }
+
+        $systemPrompt = "Anda adalah AI Asisten Dokter di Puskesmas. Tugas Anda menganalisis keluhan pasien dan memberikan saran terstruktur dalam format JSON.
+Format JSON yang diharapkan:
+{
+  \"kemungkinan_penyakit\": [\"Nama Penyakit 1\", \"Nama Penyakit 2\"],
+  \"kode_poli\": \"PL-UMM\",
+  \"tingkat_urgensi\": \"Rendah\" | \"Sedang\" | \"Tinggi\",
+  \"saran_tindakan\": \"Saran medis awal untuk pasien di rumah\"
+}
+Daftar kode_poli yang tersedia: 
+PL-UMM (Poli Umum), PL-GGI (Poli Gigi), PL-DLM (Poli Penyakit Dalam), PL-ANK (Poli Anak), PL-OBG (Poli Kandungan), PL-BDH (Poli Bedah), PL-SRF (Poli Saraf).
+Pilih SATU kode_poli yang paling tepat. Jangan memberikan penjelasan tambahan, HANYA kembalikan JSON valid.";
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(15)->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => "Keluhan: " . $keluhan]
+                ],
+                'temperature' => 0.2,
+                'response_format' => ['type' => 'json_object']
+            ]);
+
+            if ($response->successful()) {
+                $content = $response->json('choices.0.message.content');
+                $result = json_decode($content, true);
+
+                if (json_last_error() === JSON_ERROR_NONE && isset($result['kode_poli'])) {
+                    $poli = Poli::query()->where('kode_poli', $result['kode_poli'])->first();
+                    
+                    return response()->json([
+                        'status' => 'success',
+                        'data' => [
+                            'kemungkinan_penyakit' => $result['kemungkinan_penyakit'] ?? ['Gejala Non-Spesifik'],
+                            'rekomendasi_poli_id' => $poli ? $poli->id : null,
+                            'rekomendasi_poli_nama' => $poli ? $poli->nama_poli : 'Poli Umum',
+                            'tingkat_urgensi' => $result['tingkat_urgensi'] ?? 'Rendah',
+                            'saran_tindakan' => $result['saran_tindakan'] ?? 'Segera periksakan ke dokter.'
+                        ]
+                    ], 200, [], JSON_UNESCAPED_UNICODE);
+                }
+            } else {
+                Log::error('Groq API Error: ' . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::error('Groq Exception: ' . $e->getMessage());
+        }
+
+        // Fallback jika API gagal
+        $poliFallback = Poli::query()->where('kode_poli', 'PL-UMM')->first();
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'kemungkinan_penyakit' => ['Gejala Spesifik Belum Dapat Dianalisis'],
+                'rekomendasi_poli_id' => $poliFallback ? $poliFallback->id : null,
+                'rekomendasi_poli_nama' => 'Poli Umum',
+                'tingkat_urgensi' => 'Sedang',
+                'saran_tindakan' => 'Sistem AI sedang sibuk. Silakan lanjutkan pendaftaran ke Poli Umum untuk pemeriksaan langsung.'
+            ]
+        ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 }

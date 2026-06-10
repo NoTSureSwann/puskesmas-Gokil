@@ -11,6 +11,7 @@ Route::get('/', [PasienDashboardController::class, 'index'])->name('dashboard');
 // Booking Kunjungan
 Route::get('/daftar', [PasienDashboardController::class, 'showDaftarForm'])->name('daftar');
 Route::post('/daftar', [PasienDashboardController::class, 'daftar'])->name('daftar.submit');
+Route::post('/analyze-symptoms', [PasienDashboardController::class, 'analyzeSymptoms'])->name('analyze');
 
 // Riwayat Kunjungan
 Route::get('/riwayat', [PasienDashboardController::class, 'riwayat'])->name('riwayat');

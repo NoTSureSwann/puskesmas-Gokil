@@ -82,13 +82,61 @@
                     </div>
 
                     <!-- KELUHAN DETAIL -->
-                    <div class="mb-4">
+                    <div class="mb-4" x-data="aiAnalyzer()">
                         <label for="keluhan" class="form-label fw-semibold small text-dark">Rincian Keluhan Penyakit & Gejala Sakit secara Detail <span class="text-danger">*</span></label>
-                        <textarea class="form-control @error('keluhan') is-invalid @enderror" id="keluhan" name="keluhan" rows="5" placeholder="Tuliskan keluhan secara detail. Contoh: Mengalami demam tinggi naik-turun sejak 3 hari yang lalu, kepala terasa pusing berat, mual saat makan, dan ada ruam merah kecil di area lengan." required>{{ old('keluhan') }}</textarea>
-                        <span class="form-text text-muted small">Harap jelaskan gejala secara detail untuk mempermudah pemeriksaan awal oleh dokter.</span>
+                        <textarea x-model="keluhanText" class="form-control @error('keluhan') is-invalid @enderror" id="keluhan" name="keluhan" rows="5" placeholder="Tuliskan keluhan secara detail. Contoh: Mengalami demam tinggi naik-turun sejak 3 hari yang lalu, kepala terasa pusing berat, mual saat makan, dan ada ruam merah kecil di area lengan." required>{{ old('keluhan') }}</textarea>
+                        
+                        <div class="d-flex justify-content-between align-items-start mt-2">
+                            <span class="form-text text-muted small flex-grow-1 me-2">Harap jelaskan gejala secara detail untuk mempermudah pemeriksaan awal oleh dokter.</span>
+                            <button type="button" @click="analyze" class="btn btn-sm btn-info text-white rounded-pill px-3 shadow-sm d-flex align-items-center" :class="{'pulse-animation': !isLoading}" :disabled="isLoading || keluhanText.length < 10" style="min-width: 130px;">
+                                <i class="fa-solid fa-wand-magic-sparkles me-2" :class="{'fa-spin': isLoading}"></i> 
+                                <span x-text="isLoading ? 'Menganalisis...' : 'Analisis AI'" class="small fw-bold"></span>
+                            </button>
+                        </div>
                         @error('keluhan')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
+
+                        <!-- AI Result Table -->
+                        <div x-show="showResult" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 transform -translate-y-4" x-transition:enter-end="opacity-100 transform translate-y-0" class="mt-3 border rounded-3 p-3 bg-light" style="display: none;">
+                            <h6 class="fw-bold text-info mb-3 border-bottom pb-2"><i class="fa-solid fa-robot me-1"></i> Hasil Analisis AI Pintar</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-borderless mb-0 small align-middle">
+                                    <tbody>
+                                        <tr x-show="showResult" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-x-2" x-transition:enter-end="opacity-100 translate-x-0">
+                                            <td class="text-muted" style="width: 140px;"><i class="fa-solid fa-virus me-1"></i> Kemungkinan:</td>
+                                            <td class="fw-semibold text-dark">
+                                                <template x-for="p in result.kemungkinan_penyakit">
+                                                    <span class="badge bg-secondary me-1" x-text="p"></span>
+                                                </template>
+                                            </td>
+                                        </tr>
+                                        <tr x-show="showResult" x-transition:enter="transition ease-out duration-300 delay-200" x-transition:enter-start="opacity-0 translate-x-2" x-transition:enter-end="opacity-100 translate-x-0">
+                                            <td class="text-muted"><i class="fa-solid fa-triangle-exclamation me-1"></i> Urgensi:</td>
+                                            <td>
+                                                <span class="badge" 
+                                                    :class="{
+                                                        'bg-success': result.tingkat_urgensi === 'Rendah',
+                                                        'bg-warning text-dark': result.tingkat_urgensi === 'Sedang',
+                                                        'bg-danger pulse-animation': result.tingkat_urgensi === 'Tinggi'
+                                                    }" 
+                                                    x-text="result.tingkat_urgensi"></span>
+                                            </td>
+                                        </tr>
+                                        <tr x-show="showResult" x-transition:enter="transition ease-out duration-300 delay-300" x-transition:enter-start="opacity-0 translate-x-2" x-transition:enter-end="opacity-100 translate-x-0">
+                                            <td class="text-muted"><i class="fa-solid fa-kit-medical me-1"></i> Saran Tindakan:</td>
+                                            <td class="text-dark" x-text="result.saran_tindakan"></td>
+                                        </tr>
+                                        <tr x-show="showResult" x-transition:enter="transition ease-out duration-300 delay-400" x-transition:enter-start="opacity-0 translate-x-2" x-transition:enter-end="opacity-100 translate-x-0">
+                                            <td class="text-muted"><i class="fa-solid fa-house-medical-circle-check me-1"></i> Rekomendasi Poli:</td>
+                                            <td class="fw-bold text-primary">
+                                                <i class="fa-solid fa-stethoscope me-1"></i> <span x-text="result.rekomendasi_poli_nama"></span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 border-top pt-3">
@@ -130,4 +178,59 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('aiAnalyzer', () => ({
+            keluhanText: document.getElementById('keluhan').value || '',
+            isLoading: false,
+            showResult: false,
+            result: {},
+            
+            async analyze() {
+                if (this.keluhanText.length < 10) return;
+                
+                this.isLoading = true;
+                this.showResult = false;
+                
+                try {
+                    const response = await fetch('{{ route('pasien.analyze') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ keluhan: this.keluhanText })
+                    });
+                    
+                    const res = await response.json();
+                    
+                    if (res.status === 'success') {
+                        this.result = res.data;
+                        this.showResult = true;
+                        
+                        // Auto select poli_id
+                        if(this.result.rekomendasi_poli_id) {
+                            const selectElement = document.getElementById('poli_id');
+                            selectElement.value = this.result.rekomendasi_poli_id;
+                            
+                            // Highlight select element to notify user
+                            selectElement.classList.add('pulse-animation', 'border-info');
+                            setTimeout(() => {
+                                selectElement.classList.remove('pulse-animation', 'border-info');
+                            }, 3000);
+                        }
+                    }
+                } catch (error) {
+                    console.error("AI Analysis failed:", error);
+                    alert("Terjadi kesalahan saat menganalisis keluhan. Silakan coba lagi.");
+                } finally {
+                    this.isLoading = false;
+                }
+            }
+        }));
+    });
+</script>
 @endsection
