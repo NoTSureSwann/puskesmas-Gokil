@@ -95,7 +95,7 @@ class AIEngineService
     }
 
     /**
-     * Memanggil model Enterprise kBot untuk NLP dan Matematika Lanjut
+     * Memanggil model Enterprise kBot (Groq API - Llama model)
      * 
      * @param string $message
      * @return array|null
@@ -105,18 +105,54 @@ class AIEngineService
         // UU PDP: Anonymize data (hapus angka NIK atau deteksi nama simpel)
         $anonymizedMessage = preg_replace('/\b\d{16}\b/', '[NIK_REDACTED]', $message);
         
+        $groqApiKey = env('GROQ_API_KEY');
+
+        if (!$groqApiKey) {
+            Log::error('AI Engine Error: GROQ_API_KEY is missing in .env');
+            return null;
+        }
+
         try {
-            $response = Http::post("{$this->baseUrl}/kbot/analyze", [
-                'message' => $anonymizedMessage,
-            ]);
+            $response = Http::withToken($groqApiKey)
+                ->post('https://api.groq.com/openai/v1/chat/completions', [
+                    'model' => 'llama-3.1-8b-instant',
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'Anda adalah kBot, asisten medis AI tingkat lanjut. Anda harus merespons secara ketat dalam format JSON. Anda memiliki tugas ganda: pertama, lakukan "Chain of Thought" (pemikiran logis & penalaran matematis/probabilitas medis) di balik layar untuk menghindari bias (bias kognitif medis). Kedua, berikan respons yang aman dan ramah ke pasien. ' .
+                                         'Format JSON yang WAJIB Anda gunakan: ' .
+                                         '{ "reasoning_metrics": { "logical_analysis": "analisis logis keluhan", "bias_check": "cek asumsi dan bias", "nlp_confidence_score": "nilai 0-100 probabilitas akurasi" }, "patient_response": "Halo, ini jawaban ramah untuk pasien..." }'
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $anonymizedMessage
+                        ]
+                    ],
+                    'temperature' => 0.6,
+                    'max_tokens' => 1024,
+                    'response_format' => ['type' => 'json_object']
+                ]);
 
             if ($response->successful()) {
-                return $response->json();
+                $data = $response->json();
+                $content = $data['choices'][0]['message']['content'] ?? '{}';
+                
+                // Parse JSON response dari Llama
+                $parsedContent = json_decode($content, true);
+
+                return [
+                    'status' => 'success',
+                    'parameter_1' => $parsedContent['patient_response'] ?? 'Maaf, saya tidak mengerti.',
+                    'parameter_2' => [
+                        'metrics' => $parsedContent['reasoning_metrics'] ?? [],
+                        'model_usage' => $data['usage'] ?? []
+                    ]
+                ];
             }
             
-            Log::error('AI Engine Error (analyzeKbot): ' . $response->body());
+            Log::error('AI Engine Error (analyzeKbot Groq): ' . $response->body());
         } catch (\Exception $e) {
-            Log::error('AI Engine Exception (analyzeKbot): ' . $e->getMessage());
+            Log::error('AI Engine Exception (analyzeKbot Groq): ' . $e->getMessage());
         }
 
         return null;

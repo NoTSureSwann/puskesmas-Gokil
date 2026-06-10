@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('profil_pasien', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('nik', 16)->unique();
+            $table->text('nik');
             $table->string('no_bpjs', 13)->nullable()->unique();
             $table->string('no_kk', 16)->nullable();
             $table->enum('jenis_kelamin', ['L', 'P']);
@@ -31,7 +31,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index('nik');
             $table->index('no_bpjs');
         });
     }

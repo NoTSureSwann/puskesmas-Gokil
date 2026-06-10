@@ -7,7 +7,7 @@ use App\Services\AIEngineService;
 
 class KbotController extends Controller
 {
-    protected $aiEngine;
+    protected AIEngineService $aiEngine;
 
     public function __construct(AIEngineService $aiEngine)
     {
