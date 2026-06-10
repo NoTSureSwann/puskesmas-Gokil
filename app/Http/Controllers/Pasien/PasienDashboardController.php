@@ -1,0 +1,229 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Pasien;
+
+use App\Events\KunjunganUpdated;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Pasien\StoreKunjunganRequest;
+use App\Models\Kunjungan;
+use App\Models\Poli;
+use App\Models\ProfilPasien;
+use App\Notifications\AntrianDigitalNotification;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+
+/**
+ * Class PasienDashboardController
+ * Handles actions and views for Patient role.
+ */
+class PasienDashboardController extends Controller
+{
+    /**
+     * Tampilkan halaman utama/dashboard Pasien.
+     */
+    public function index(): View
+    {
+        $user = Auth::user();
+        $pasien = $user->profilPasien;
+
+        // Cari antrian aktif hari ini
+        $antrianAktif = Kunjungan::query()->where('pasien_id', $pasien->id)
+            ->whereDate('tanggal_kunjungan', Carbon::today())
+            ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa', 'resep'])
+            ->first();
+
+        // Riwayat 5 kunjungan terakhir
+        $riwayatKunjungan = Kunjungan::query()->where('pasien_id', $pasien->id)
+            ->with(['poli', 'dokter.user'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Notifikasi database
+        $notifikasis = $user->unreadNotifications;
+
+        return view('pasien.dashboard', compact('user', 'pasien', 'antrianAktif', 'riwayatKunjungan', 'notifikasis'));
+    }
+
+    /**
+     * Tampilkan form pendaftaran kunjungan baru.
+     */
+    public function showDaftarForm(): View|RedirectResponse
+    {
+        $pasien = Auth::user()->profilPasien;
+
+        // Pastikan profil pasien sudah diisi lengkap
+        if (!$pasien) {
+            return redirect()->route('pasien.profil')->with('error', 'Silakan lengkapi profil Anda terlebih dahulu.');
+        }
+
+        $polis = Poli::query()->where('is_aktif', true)->get();
+        $today = Carbon::today()->format('Y-m-d');
+        $dokters = \App\Models\User::query()->where('role', 'dokter')
+            ->where('status', 'aktif')
+            ->with('profilDokter')
+            ->get();
+
+        return view('pasien.daftar', compact('pasien', 'polis', 'today', 'dokters'));
+    }
+
+    /**
+     * Proses submit pendaftaran kunjungan (antrian).
+     */
+    public function daftar(StoreKunjunganRequest $request): RedirectResponse
+    {
+        $pasien = Auth::user()->profilPasien;
+
+        // Cek jika sudah terdaftar di poli yang sama pada hari yang sama
+        $exist = Kunjungan::query()->where('pasien_id', $pasien->id)
+            ->where('poli_id', $request->poli_id)
+            ->whereDate('tanggal_kunjungan', Carbon::parse($request->tanggal_kunjungan))
+            ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa', 'resep'])
+            ->first();
+
+        if ($exist) {
+            return back()->with('error', 'Anda sudah mendaftar di poli ini pada tanggal tersebut. Silakan tunggu giliran atau pilih poli lain.');
+        }
+
+        // Simpan kunjungan
+        $kunjungan = Kunjungan::create([
+            'pasien_id' => $pasien->id,
+            'poli_id' => $request->poli_id,
+            'dokter_id' => null, // Ditentukan oleh poli/pemeriksa nanti
+            'loket_user_id' => null, // Online self-registration
+            'tanggal_kunjungan' => $request->tanggal_kunjungan,
+            'keluhan' => $request->keluhan,
+            'status' => 'menunggu',
+            'jenis_kunjungan' => $request->jenis_kunjungan,
+            'jam_daftar' => now(),
+        ]);
+
+        // Kirim Notifikasi & Email
+        Auth::user()->notify(new AntrianDigitalNotification($kunjungan));
+
+        return redirect()->route('pasien.kunjungan', $kunjungan->id)
+            ->with('status', 'Pendaftaran antrian berhasil! Kartu antrian Anda telah dikirim via email.');
+    }
+
+    /**
+     * Tampilkan riwayat kunjungan pasien (paginated).
+     */
+    public function riwayat(): View
+    {
+        $pasien = Auth::user()->profilPasien;
+        $kunjungans = Kunjungan::query()->where('pasien_id', $pasien->id)
+            ->with(['poli', 'dokter.user'])
+            ->latest()
+            ->paginate(10);
+
+        return view('pasien.riwayat', compact('kunjungans'));
+    }
+
+    /**
+     * Tampilkan detail kunjungan (dan resep jika ada).
+     */
+    public function showKunjungan(int $id): View
+    {
+        $pasien = Auth::user()->profilPasien;
+        $kunjungan = Kunjungan::query()->where('pasien_id', $pasien->id)
+            ->with(['poli', 'dokter.user', 'resep.detailResep.obat'])
+            ->findOrFail($id);
+
+        return view('pasien.kunjungan', compact('kunjungan'));
+    }
+
+    /**
+     * Proses membatalkan kunjungan antrian.
+     */
+    public function batalKunjungan(int $id): RedirectResponse
+    {
+        $pasien = Auth::user()->profilPasien;
+        $kunjungan = Kunjungan::query()->where('pasien_id', $pasien->id)
+            ->where('status', 'menunggu')
+            ->findOrFail($id);
+
+        $kunjungan->update(['status' => 'batal']);
+
+        // Broadcast KunjunganUpdated event for real-time queue syncing
+        event(new KunjunganUpdated($kunjungan));
+
+        return redirect()->route('pasien.dashboard')
+            ->with('status', 'Kunjungan nomor ' . $kunjungan->no_kunjungan . ' berhasil dibatalkan.');
+    }
+
+    /**
+     * Tampilkan halaman edit profil pasien.
+     */
+    public function showProfil(): View
+    {
+        $user = Auth::user();
+        $pasien = $user->profilPasien;
+
+        return view('pasien.profil', compact('user', 'pasien'));
+    }
+
+    /**
+     * Proses update profil pasien.
+     */
+    public function updateProfil(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+        $pasien = $user->profilPasien;
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/'],
+            'nik' => ['required', 'string', 'numeric', 'digits:16', 'unique:profil_pasien,nik,' . $pasien->id],
+            'no_bpjs' => ['nullable', 'string', 'numeric', 'digits:13', 'unique:profil_pasien,no_bpjs,' . $pasien->id],
+            'no_kk' => ['nullable', 'string', 'numeric', 'digits:16'],
+            'jenis_kelamin' => ['required', 'in:L,P'],
+            'tanggal_lahir' => ['required', 'date', 'before_or_equal:today'],
+            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'alamat' => ['required', 'string'],
+            'kelurahan' => ['required', 'string', 'max:100'],
+            'kecamatan' => ['required', 'string', 'max:100'],
+            'jenis_pasien' => ['required', 'in:umum,bpjs'],
+            'riwayat_alergi' => ['nullable', 'string'],
+            'golongan_darah' => ['nullable', 'in:A,B,AB,O,Tidak Tahu'],
+        ]);
+
+        // Update User
+        $user->update([
+            'name' => $request->name,
+            'phone' => $request->phone,
+        ]);
+
+        // Update ProfilPasien
+        $pasien->update([
+            'nik' => $request->nik,
+            'no_bpjs' => $request->no_bpjs,
+            'no_kk' => $request->no_kk,
+            'jenis_kelamin' => $request->jenis_kelamin,
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'tempat_lahir' => $request->tempat_lahir,
+            'alamat' => $request->alamat,
+            'kelurahan' => $request->kelurahan,
+            'kecamatan' => $request->kecamatan,
+            'jenis_pasien' => $request->jenis_pasien,
+            'riwayat_alergi' => $request->riwayat_alergi,
+            'golongan_darah' => $request->golongan_darah,
+        ]);
+
+        return redirect()->route('pasien.profil')
+            ->with('status', 'Profil Anda berhasil diperbarui.');
+    }
+
+    /**
+     * Bersihkan notifikasi pasien.
+     */
+    public function markNotificationsAsRead(): RedirectResponse
+    {
+        Auth::user()->unreadNotifications->markAsRead();
+        return back()->with('status', 'Semua notifikasi ditandai telah dibaca.');
+    }
+}

@@ -1,0 +1,182 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Dokter;
+
+use App\Events\KunjunganUpdated;
+use App\Http\Controllers\Controller;
+use App\Models\Kunjungan;
+use App\Models\Poli;
+use App\Models\ProfilPasien;
+use App\Models\Resep;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+
+/**
+ * Class DokterDashboardController
+ * Handles actions and views for Doctor role.
+ */
+class DokterDashboardController extends Controller
+{
+    /**
+     * Tampilkan halaman utama/dashboard Dokter.
+     */
+    public function index(): View|RedirectResponse
+    {
+        $user = Auth::user();
+        $dokter = $user->profilDokter;
+
+        if (!$dokter) {
+            return redirect()->route('home')->with('error', 'Profil Dokter Anda belum terdaftar.');
+        }
+
+        $today = Carbon::today();
+
+        // 1. Stats Bar
+        $totalPasienHariIni = Kunjungan::query()->where('poli_id', function ($query) use ($dokter) {
+            $query->select('id')->from('poli')->where('nama_poli', $dokter->poli)->limit(1);
+        })->whereDate('tanggal_kunjungan', $today)->count();
+
+        $menungguCount = Kunjungan::query()->where('poli_id', function ($query) use ($dokter) {
+            $query->select('id')->from('poli')->where('nama_poli', $dokter->poli)->limit(1);
+        })->whereDate('tanggal_kunjungan', $today)->where('status', 'menunggu')->count();
+
+        $selesaiCount = Kunjungan::query()->where('poli_id', function ($query) use ($dokter) {
+            $query->select('id')->from('poli')->where('nama_poli', $dokter->poli)->limit(1);
+        })->whereDate('tanggal_kunjungan', $today)->where('status', 'selesai')->count();
+
+        // 2. Daftar Antrian Pasien Hari Ini (Menunggu, Dipanggil, Diperiksa, Resep)
+        $antrians = Kunjungan::query()->where('poli_id', function ($query) use ($dokter) {
+            $query->select('id')->from('poli')->where('nama_poli', $dokter->poli)->limit(1);
+        })
+        ->whereDate('tanggal_kunjungan', $today)
+        ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa', 'resep'])
+        ->with('pasien.user')
+        ->orderBy('no_antrian', 'asc')
+        ->get();
+
+        // 3. Resep yang Dibuat Hari Ini oleh Dokter Ini (Limit 5)
+        $resepsHariIni = Resep::query()->where('dokter_id', $dokter->id)
+            ->whereDate('created_at', $today)
+            ->with(['kunjungan.pasien.user'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        return view('dokter.dashboard', compact(
+            'user', 'dokter', 'totalPasienHariIni', 'menungguCount', 'selesaiCount', 'antrians', 'resepsHariIni'
+        ));
+    }
+
+    /**
+     * Aksi memanggil pasien ke ruangan.
+     */
+    public function panggil(int $id): RedirectResponse
+    {
+        $dokter = Auth::user()->profilDokter;
+        $kunjungan = Kunjungan::query()->where('status', 'menunggu')->findOrFail($id);
+
+        // Validasi ownership: kunjungan harus di poli milik dokter ini
+        $poliDokter = Poli::query()->where('nama_poli', $dokter->poli)->first();
+        if (!$poliDokter || $kunjungan->poli_id !== $poliDokter->id) {
+            abort(403, 'Anda tidak memiliki akses ke kunjungan di poli ini.');
+        }
+
+        $kunjungan->update([
+            'status' => 'dipanggil',
+            'jam_panggil' => now(),
+            'dokter_id' => $dokter->id,
+        ]);
+
+        // Dispatch Event untuk sinkronisasi real-time
+        event(new KunjunganUpdated($kunjungan));
+
+        return redirect()->route('dokter.dashboard')
+            ->with('status', 'Pasien nomor antrian ' . $kunjungan->no_antrian . ' dipanggil.');
+    }
+
+    /**
+     * Aksi memulai pemeriksaan pasien.
+     */
+    public function periksa(int $id): RedirectResponse
+    {
+        $dokter = Auth::user()->profilDokter;
+        $kunjungan = Kunjungan::query()->where('status', 'dipanggil')->findOrFail($id);
+
+        // Validasi ownership: kunjungan harus di poli milik dokter ini
+        $poliDokter = Poli::query()->where('nama_poli', $dokter->poli)->first();
+        if (!$poliDokter || $kunjungan->poli_id !== $poliDokter->id) {
+            abort(403, 'Anda tidak memiliki akses ke kunjungan di poli ini.');
+        }
+
+        $kunjungan->update(['status' => 'diperiksa']);
+
+        // Dispatch Event untuk sinkronisasi real-time
+        event(new KunjunganUpdated($kunjungan));
+
+        return redirect()->route('dokter.dashboard')
+            ->with('status', 'Pemeriksaan dimulai untuk pasien ' . $kunjungan->pasien->user->name . '.');
+    }
+
+    /**
+     * Tampilkan riwayat lengkap pemeriksaan pasien berdasarkan NIK.
+     */
+    public function showPasienHistory(string $nik): View
+    {
+        $pasien = ProfilPasien::query()->where('nik', $nik)->firstOrFail();
+        
+        $riwayats = Kunjungan::query()->where('pasien_id', $pasien->id)
+            ->whereIn('status', ['selesai'])
+            ->with(['poli', 'dokter.user', 'resep.detailResep.obat'])
+            ->latest()
+            ->get();
+
+        return view('dokter.pasien.riwayat', compact('pasien', 'riwayats'));
+    }
+
+    /**
+     * Tampilkan form profil dokter.
+     */
+    public function showProfil(): View
+    {
+        $user = Auth::user();
+        $dokter = $user->profilDokter;
+
+        return view('dokter.profil', compact('user', 'dokter'));
+    }
+
+    /**
+     * Update profil dokter.
+     */
+    public function updateProfil(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+        $dokter = $user->profilDokter;
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'phone' => ['required', 'string', 'regex:/^[0-9]{10,15}$/'],
+            'nip' => ['nullable', 'string', 'numeric', 'unique:profil_dokter,nip,' . $dokter->id],
+            'sip' => ['nullable', 'string', 'max:50'],
+            'spesialisasi' => ['required', 'string', 'max:100'],
+        ]);
+
+        $user->update([
+            'name' => $request->name,
+            'phone' => $request->phone,
+        ]);
+
+        $dokter->update([
+            'nip' => $request->nip,
+            'sip' => $request->sip,
+            'spesialisasi' => $request->spesialisasi,
+        ]);
+
+        return redirect()->route('dokter.profil')
+            ->with('status', 'Profil Dokter berhasil diperbarui.');
+    }
+}
