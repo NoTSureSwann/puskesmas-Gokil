@@ -9,6 +9,8 @@ import logging
 from models.machine_learning import train_ml_model
 from models.deep_learning import train_dl_model
 from models.reinforcement_learning import train_rl_agent
+from models.alignment_research import run_alignment_evaluation_loop
+from models.kbot_intelligence import KBotIntelligence
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -72,6 +74,16 @@ def job_rl():
         train_rl_agent(conn)
         conn.close()
 
+def job_alignment_eval():
+    logging.info("Starting Real-Time Alignment Evaluation Loop...")
+    try:
+        # Panggil KBot instance sebagai mock testbed
+        kbot_instance = KBotIntelligence()
+        report = run_alignment_evaluation_loop(kbot_instance)
+        logging.info(f"Alignment Report: {report}")
+    except Exception as e:
+        logging.error(f"Alignment Eval Error: {e}")
+
 if __name__ == "__main__":
     logging.info("AI Engine Started. Scheduling training jobs...")
     
@@ -84,10 +96,14 @@ if __name__ == "__main__":
     # Schedule Reinforcement Learning optimization every hour (example)
     schedule.every(1).hours.do(job_rl)
     
+    # Schedule Real-Time Alignment Evaluation every 10 minutes (fast iteration)
+    schedule.every(10).minutes.do(job_alignment_eval)
+    
     # Run once immediately for testing/demonstration
     job_ml()
     job_dl()
     job_rl()
+    job_alignment_eval()
 
     # Keep the script running
     while True:

@@ -68,9 +68,9 @@
 <div class="login-container animated-fade" x-data="{ activeRole: '{{ old('role', $role ?? 'pasien') }}', showPassword: false }">
     <div class="card card-premium p-4 p-md-5">
         <div class="text-center mb-4">
-            <span class="text-primary fs-1"><i class="fa-solid fa-house-chimney-medical"></i></span>
-            <h3 class="fw-bold mt-2">Masuk Aplikasi</h3>
-            <p class="text-muted small">Pilih peran Anda dan isi kredensial untuk masuk</p>
+            <span class="text-primary fs-1"><i class="fa-solid fa-stethoscope"></i></span>
+            <h3 class="fw-bold mt-2">{{ __('messages.login_title') }}</h3>
+            <p class="text-muted small">{{ __('messages.pilih_peran') }}</p>
         </div>
 
         @if ($errors->any())
@@ -87,20 +87,44 @@
         <div class="role-tabs">
             <button type="button" class="role-tab-btn" :class="activeRole === 'pasien' ? 'active' : ''" @click="activeRole = 'pasien'">
                 <i class="fa-solid fa-user-injured"></i>
-                <span>Pasien</span>
+                <span>{{ __('messages.pasien') }}</span>
             </button>
             <button type="button" class="role-tab-btn" :class="activeRole === 'dokter' ? 'active' : ''" @click="activeRole = 'dokter'">
                 <i class="fa-solid fa-user-doctor"></i>
-                <span>Dokter</span>
+                <span>{{ __('messages.dokter') }}</span>
             </button>
             <button type="button" class="role-tab-btn" :class="activeRole === 'farmasi' ? 'active' : ''" @click="activeRole = 'farmasi'">
                 <i class="fa-solid fa-prescription-bottle-medical"></i>
-                <span>Farmasi</span>
+                <span>{{ __('messages.farmasi') }}</span>
             </button>
             <button type="button" class="role-tab-btn" :class="activeRole === 'admin' ? 'active' : ''" @click="activeRole = 'admin'">
                 <i class="fa-solid fa-user-gear"></i>
-                <span>Admin</span>
+                <span>{{ __('messages.admin') }}</span>
             </button>
+        </div>
+
+        <!-- DUMMY LOGIN CREDENTIALS -->
+        <div class="alert py-2 px-3 small mb-4" style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
+            <div class="d-flex align-items-center mb-1">
+                <i class="fa-solid fa-laptop-code text-primary me-2"></i>
+                <strong class="text-dark">{{ __('messages.kredensial_prototipe') }}</strong>
+            </div>
+            <div x-show="activeRole === 'pasien'">
+                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('pasien.bpjs@gmail.com');">pasien.bpjs@gmail.com</code> <br> 
+                Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
+            </div>
+            <div x-show="activeRole === 'dokter'" style="display: none;">
+                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('dokter@puskesmas.go.id');">dokter@puskesmas.go.id</code> <br> 
+                Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
+            </div>
+            <div x-show="activeRole === 'farmasi'" style="display: none;">
+                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('farmasi@puskesmas.go.id');">farmasi@puskesmas.go.id</code> <br> 
+                Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
+            </div>
+            <div x-show="activeRole === 'admin'" style="display: none;">
+                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('admin@puskesmas.go.id');">admin@puskesmas.go.id</code> <br> 
+                Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
+            </div>
         </div>
 
         <!-- LOGIN FORM -->
@@ -112,7 +136,7 @@
 
             <!-- EMAIL -->
             <div class="mb-3">
-                <label for="email" class="form-label fw-semibold small">Alamat Email</label>
+                <label for="email" class="form-label fw-semibold small">{{ __('messages.email') }}</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
                     <input type="email" class="form-control form-control-has-icon" id="email" name="email" value="{{ old('email') }}" placeholder="email@contoh.com" required autocomplete="email" autofocus>
@@ -122,7 +146,7 @@
             <!-- PASSWORD -->
             <div class="mb-4">
                 <div class="d-flex justify-content-between">
-                    <label for="password" class="form-label fw-semibold small">Kata Sandi</label>
+                    <label for="password" class="form-label fw-semibold small">{{ __('messages.password') }}</label>
                     <a href="#" class="small text-decoration-none text-primary">Lupa Password?</a>
                 </div>
                 <div class="input-group">
@@ -138,18 +162,18 @@
             <div class="form-check mb-4">
                 <input class="form-check-input" type="checkbox" name="remember" id="remember" value="1" {{ old('remember') ? 'checked' : '' }}>
                 <label class="form-check-label text-muted small" for="remember">
-                    Ingat saya di perangkat ini
+                    {{ __('messages.ingat_saya') }}
                 </label>
             </div>
 
             <!-- SUBMIT BUTTON -->
             <div class="d-grid mb-3">
-                <button type="submit" class="btn btn-primary btn-lg text-white"><i class="fa-solid fa-right-to-bracket me-2"></i> Masuk</button>
+                <button type="submit" class="btn btn-primary btn-lg text-white"><i class="fa-solid fa-right-to-bracket me-2"></i> {{ __('messages.btn_masuk') }}</button>
             </div>
 
             <!-- DYNAMIC REGISTER LINK -->
             <div class="text-center">
-                <span class="text-muted small">Belum memiliki akun? <a :href="`/register/${activeRole}`" class="text-primary fw-medium text-decoration-none">Daftar Akun Baru</a></span>
+                <span class="text-muted small">{{ __('messages.belum_punya_akun') }} <a :href="`/register/${activeRole}`" class="text-primary fw-medium text-decoration-none">{{ __('messages.daftar_sebagai') }}</a></span>
             </div>
         </form>
     </div>

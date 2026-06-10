@@ -69,7 +69,16 @@
                     </div>
                 </div>
 
-                <div class="mt-5 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+                <div class="mt-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="terms_conditions" name="terms_conditions" required>
+                        <label class="form-check-label small" for="terms_conditions">
+                            Saya menyetujui Syarat & Ketentuan pada <strong class="text-primary">project prototipe platform ini</strong> (Termasuk persetujuan regulasi UU PDP & ISO 27001).
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
                     <a href="{{ route('home') }}" class="btn btn-outline-secondary order-2 order-sm-1 w-100 w-sm-auto"><i class="fa-solid fa-arrow-left me-1"></i> Batal</a>
                     <button type="submit" class="btn btn-primary text-white order-1 order-sm-2 w-100 w-sm-auto"><i class="fa-solid fa-user-plus me-1"></i> Daftar Sekarang</button>
                 </div>

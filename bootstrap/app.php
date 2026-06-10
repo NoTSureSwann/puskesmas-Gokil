@@ -14,9 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // Sanitasi global: strip HTML tags dari semua input string (anti-XSS)
         $middleware->prepend(\App\Http\Middleware\SanitizeInput::class);
 
+        $middleware->web(append: [
+            \App\Http\Middleware\SetLocale::class,
+        ]);
+
         $middleware->alias([
             'role'           => \App\Http\Middleware\RoleMiddleware::class,
             'email.verified' => \App\Http\Middleware\CheckEmailVerified::class,
+            'log.rme'        => \App\Http\Middleware\LogRmeAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

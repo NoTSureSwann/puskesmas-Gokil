@@ -3,6 +3,7 @@ import logging
 import gymnasium as gym
 from stable_baselines3 import PPO
 import pandas as pd
+from models.envs.hospital_queue_env import HospitalQueueEnv
 
 def train_rl_agent(db_connection):
     """
@@ -18,9 +19,8 @@ def train_rl_agent(db_connection):
         
         logging.info("[RL] Membangun RL Agent dengan Proximal Policy Optimization (PPO)...")
         
-        # CartPole adalah env default simulasi; di sistem asli Anda akan 
-        # membuat class HospitalQueueEnv(gym.Env)
-        env = gym.make("CartPole-v1")
+        # Inisialisasi custom environment HospitalQueueEnv
+        env = HospitalQueueEnv()
         
         # Inisialisasi model
         model = PPO("MlpPolicy", env, verbose=0)

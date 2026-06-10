@@ -232,7 +232,7 @@
     <nav class="navbar navbar-expand-lg navbar-premium">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}">
-                <span class="text-primary me-2 fs-3"><i class="fa-solid fa-house-chimney-medical"></i></span>
+                <span class="text-primary me-2 fs-3"><i class="fa-solid fa-stethoscope"></i></span>
                 <span class="navbar-brand-text">Puskesmas & Klinik</span>
             </a>
             <button class="navbar-toggler border-0 collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -243,8 +243,20 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center gap-3 mt-3 mt-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link text-dark fw-medium" href="{{ route('home') }}">Beranda</a>
+                        <a class="nav-link text-dark fw-medium" href="{{ route('home') }}">{{ __('messages.beranda') }}</a>
                     </li>
+                    
+                    <!-- Language Switcher -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-dark fw-medium" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-earth-americas text-primary me-1"></i> {{ strtoupper(App::getLocale()) }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
+                            <li><a class="dropdown-item py-2 {{ App::getLocale() == 'id' ? 'active bg-primary text-white' : '' }}" href="{{ route('lang.switch', 'id') }}">🇮🇩 Indonesia</a></li>
+                            <li><a class="dropdown-item py-2 {{ App::getLocale() == 'en' ? 'active bg-primary text-white' : '' }}" href="{{ route('lang.switch', 'en') }}">🇬🇧 English</a></li>
+                        </ul>
+                    </li>
+
                     @auth
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle text-dark fw-medium" href="#" role="button" data-bs-toggle="dropdown">
@@ -269,10 +281,10 @@
                         </li>
                     @else
                         <li class="nav-item">
-                            <a class="btn btn-outline-primary" href="{{ route('login') }}">Masuk</a>
+                            <a class="btn btn-outline-primary" href="{{ route('login') }}">{{ __('messages.login') }}</a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-primary text-white" href="{{ route('register', ['role' => 'pasien']) }}">Daftar</a>
+                            <a class="btn btn-primary text-white" href="{{ route('register', ['role' => 'pasien']) }}">{{ __('messages.daftar_sebagai') }} Pasien</a>
                         </li>
                     @endauth
                 </ul>
