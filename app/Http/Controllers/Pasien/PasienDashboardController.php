@@ -360,7 +360,7 @@ Pilih SATU kode_poli yang paling tepat. Jangan memberikan penjelasan tambahan, H
 
             \Illuminate\Support\Facades\Storage::put('ai_dataset.json', json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Sync AI Dataset to JSON error: ' . $e->getMessage());
+            Log::error('Sync AI Dataset to JSON error: ' . $e->getMessage());
         }
     }
 }

@@ -41,21 +41,21 @@ class AdminDashboardController extends Controller
         $today = Carbon::today();
 
         $stats = [
-            'total_pasien' => User::query()->where('role', 'pasien')->count(),
-            'total_dokter' => User::query()->where('role', 'dokter')->count(),
-            'total_farmasi' => User::query()->where('role', 'farmasi')->count(),
-            'total_poli' => Poli::query()->count(),
-            'total_obat' => Obat::query()->count(),
-            'kunjungan_hari_ini' => Kunjungan::query()->whereDate('tanggal_kunjungan', $today)->count(),
-            'resep_selesai' => Resep::query()->whereDate('created_at', $today)->where('status', 'selesai')->count(),
-            'log_cetak_count' => LogCetak::query()->count(), // SQLite Log Count
+            'total_pasien' => User::query()->where('role', '=', 'pasien', 'and')->count('*'),
+            'total_dokter' => User::query()->where('role', '=', 'dokter', 'and')->count('*'),
+            'total_farmasi' => User::query()->where('role', '=', 'farmasi', 'and')->count('*'),
+            'total_poli' => Poli::query()->count('*'),
+            'total_obat' => Obat::query()->count('*'),
+            'kunjungan_hari_ini' => Kunjungan::query()->whereDate('tanggal_kunjungan', '=', $today, 'and')->count('*'),
+            'resep_selesai' => Resep::query()->whereDate('created_at', '=', $today, 'and')->where('status', '=', 'selesai', 'and')->count('*'),
+            'log_cetak_count' => LogCetak::query()->count('*'), // SQLite Log Count
         ];
 
         // Obat dengan stok rendah
         $lowStockObats = Obat::stokRendah()->get();
 
         // Kunjungan hari ini berdasarkan status
-        $kunjunganStatus = Kunjungan::query()->whereDate('tanggal_kunjungan', $today)
+        $kunjunganStatus = Kunjungan::query()->whereDate('tanggal_kunjungan', '=', $today, 'and')
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status')
