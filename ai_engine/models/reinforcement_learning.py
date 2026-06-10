@@ -1,3 +1,4 @@
+# Reinforcement Learning model training module using Gymnasium and Stable-Baselines3
 import logging
 import gymnasium as gym
 from stable_baselines3 import PPO
