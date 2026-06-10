@@ -281,7 +281,7 @@ Pilih SATU kode_poli yang paling tepat. Jangan memberikan penjelasan tambahan, H
                 $result = json_decode($content, true);
 
                 if (json_last_error() === JSON_ERROR_NONE && isset($result['kode_poli'])) {
-                    $poli = Poli::query()->where('kode_poli', $result['kode_poli'])->first();
+                    $poli = Poli::query()->where('kode_poli', '=', $result['kode_poli'], 'and')->first();
                     
                     return response()->json([
                         'status' => 'success',
@@ -302,7 +302,7 @@ Pilih SATU kode_poli yang paling tepat. Jangan memberikan penjelasan tambahan, H
         }
 
         // Fallback jika API gagal
-        $poliFallback = Poli::query()->where('kode_poli', 'PL-UMM')->first();
+        $poliFallback = Poli::query()->where('kode_poli', '=', 'PL-UMM', 'and')->first();
         return response()->json([
             'status' => 'success',
             'data' => [
