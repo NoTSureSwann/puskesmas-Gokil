@@ -1,5 +1,6 @@
 # AI Engine Daemon for background ML/DL/RL model training jobs
 import time
+import os
 import schedule
 import mysql.connector
 from mysql.connector import Error
@@ -12,13 +13,37 @@ from models.reinforcement_learning import train_rl_agent
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def load_env_vars():
+    """
+    Membaca berkas .env dari parent directory secara real-time
+    agar kredensial database selalu tersinkronisasi.
+    """
+    env_vars = {}
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        env_path = os.path.join(current_dir, '..', '.env')
+        if os.path.exists(env_path):
+            with open(env_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        env_vars[key.strip()] = value.strip('"\'')
+        else:
+            logging.warning(f".env tidak ditemukan di {env_path}, menggunakan fallback.")
+    except Exception as e:
+        logging.error(f"Gagal membaca .env: {e}")
+    return env_vars
+
 def get_db_connection():
+    env = load_env_vars()
     try:
         connection = mysql.connector.connect(
-            host='127.0.0.1',
-            database='puskesmas_johar_baru',
-            user='root',
-            password=''
+            host=env.get('DB_HOST', '127.0.0.1'),
+            port=int(env.get('DB_PORT', 3306)),
+            database=env.get('DB_DATABASE', 'puskesmas_johar_baru'),
+            user=env.get('DB_USERNAME', 'root'),
+            password=env.get('DB_PASSWORD', '')
         )
         if connection.is_connected():
             return connection

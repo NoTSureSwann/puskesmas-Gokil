@@ -61,7 +61,7 @@ class CetakStrukController extends Controller
         ]);
 
         // 4b. Update status cetak di ai_datasets jika ada
-        $aiDataset = \App\Models\AiDataset::where('kunjungan_id', $resep->kunjungan_id)->first();
+        $aiDataset = \App\Models\AiDataset::query()->where('kunjungan_id', '=', $resep->kunjungan_id, 'and')->first();
         if ($aiDataset) {
             $aiDataset->update([
                 'is_printed' => true,
