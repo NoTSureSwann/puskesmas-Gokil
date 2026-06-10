@@ -26,10 +26,15 @@ class KbotController extends Controller
         $result = $this->aiEngine->analyzeKbot($request->message);
 
         if ($result && isset($result['status']) && $result['status'] === 'success') {
+            // Log reasoning AI di backend untuk keperluan audit dan monitoring bias
+            \Illuminate\Support\Facades\Log::info('kBot Enterprise Analysis', [
+                'user_message' => $request->message,
+                'ai_reasoning_metrics' => $result['parameter_2'] ?? []
+            ]);
+
             return response()->json([
                 'status' => 'success',
                 'parameter_1' => $result['parameter_1'],
-                'parameter_2' => $result['parameter_2'],
             ]);
         }
 

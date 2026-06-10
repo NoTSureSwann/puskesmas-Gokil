@@ -17,3 +17,9 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Python Cache & Logs
+__pycache__/
+*.pyc
+ai_engine/data/interaction_logs.jsonl
+ai_engine/data/feedback_labels.jsonl

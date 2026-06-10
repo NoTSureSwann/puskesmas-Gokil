@@ -6,9 +6,15 @@ import pickle
 import torch
 from stable_baselines3 import PPO
 from models.kbot_intelligence import KBotIntelligence
+from models.nlp_classifier import NLPClassifier
+from models.severity_scorer import SeverityScorer
+from flask_cors import CORS
+import os
+import uuid
 
 # Initialize Flask app
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8000"])
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -27,6 +33,8 @@ except Exception as e:
 dl_model = None  # To be implemented with TextClassificationNet
 rl_agent = None  # To be implemented with PPO.load
 kbot_ai = KBotIntelligence()
+nlp_clf = NLPClassifier(model_path='ai_engine/saved_models/nlp_classifier.pkl')
+severity_scorer = SeverityScorer()
 
 @app.route('/predict/surge', methods=['POST'])
 def predict_surge():
@@ -92,30 +100,82 @@ def analyze_kbot():
         return jsonify({'error': 'Message cannot be empty'}), 400
         
     try:
+        message_id = str(uuid.uuid4())
+        # Predict NLP (IndoBERT/SVM fallback)
+        poli_result = nlp_clf.predict_poli(message)
+        
         # Panggil modul intelijen kBot
-        parameter_1, parameter_2 = kbot_ai.process_request(message)
+        parameter_1, parameter_2 = kbot_ai.process_request(message, nlp_result=poli_result)
+        
+        # Insert nlp_classification into parameter_2
+        parameter_2["nlp_classification"] = poli_result
         
         # Simpan log interaksi untuk bahan Evaluasi Real-Time (Alignment Research)
         log_entry = {
+            "message_id": message_id,
             "timestamp": time.time(),
             "input_text": message,
             "parameter_1": parameter_1,
             "parameter_2": parameter_2
         }
         
-        import os
         os.makedirs('ai_engine/data', exist_ok=True)
         with open('ai_engine/data/interaction_logs.jsonl', 'a') as f:
             f.write(json.dumps(log_entry) + '\n')
             
         return jsonify({
             'status': 'success',
+            'message_id': message_id,
             'parameter_1': parameter_1,
             'parameter_2': parameter_2
         }), 200
     except Exception as e:
         logging.error(f"Error in /kbot/analyze: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/kbot/feedback', methods=['POST'])
+def kbot_feedback():
+    data = request.json
+    message_id = data.get('message_id')
+    rating = data.get('rating')
+    original_input = data.get('original_input', '')
+    
+    if rating not in [0, 1]:
+        return jsonify({"error": "Rating must be 0 or 1"}), 400
+        
+    log_entry = {
+        "timestamp": time.time(),
+        "message_id": message_id,
+        "rating": rating,
+        "original_input": original_input
+    }
+    
+    os.makedirs('ai_engine/data', exist_ok=True)
+    with open('ai_engine/data/feedback_labels.jsonl', 'a') as f:
+        f.write(json.dumps(log_entry) + '\n')
+        
+    return jsonify({"status": "success", "message": "Feedback recorded"}), 200
+
+@app.route('/kbot/train', methods=['GET'])
+def kbot_train():
+    if request.remote_addr not in ['127.0.0.1', 'localhost']:
+        return jsonify({"error": "Forbidden"}), 403
+        
+    try:
+        from training.train_classifier import train_main
+        result = train_main()
+        if result is None:
+            return jsonify({"error": "Training failed or insufficient data"}), 500
+            
+        return jsonify({
+            "status": "success", 
+            "accuracy": result["accuracy"], 
+            "n_samples": 80, # Hardcoded for now based on PRD
+            "version": "1.0.0"
+        }), 200
+    except Exception as e:
+        logging.error(f"Error in /kbot/train: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     logging.info("Starting AI Engine API Server on port 5000...")

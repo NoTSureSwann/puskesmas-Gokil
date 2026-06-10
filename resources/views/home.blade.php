@@ -68,6 +68,7 @@
         margin-bottom: 1rem;
     }
 </style>
+<link rel="stylesheet" href="{{ asset('css/kbot.css') }}">
 @endsection
 
 @section('content')
@@ -172,27 +173,24 @@
 </div>
 
 <!-- kBot Widget -->
-<div id="kbot-widget" style="position: fixed; bottom: 30px; right: 30px; z-index: 1050; display: flex; flex-direction: column; align-items: flex-end;">
-    <!-- Chat Window (Hidden by default) -->
-    <div id="kbot-chat-window" class="shadow-lg" style="display: none; width: 350px; height: 500px; background: white; border-radius: 15px; overflow: hidden; margin-bottom: 15px; border: 1px solid #e2e8f0; flex-direction: column;">
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+<div class="kbot-container">
+    <!-- Chat Window -->
+    <div id="kbot-chat-window" class="kbot-window">
+        <div class="kbot-header">
             <span><i class="fa-solid fa-robot me-2"></i> kBot Enterprise</span>
             <button id="close-kbot" style="background: none; border: none; color: white; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
         </div>
         
-        <div id="kbot-messages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f8fafc; font-size: 0.9rem;">
-            <!-- Messages load here (Lazy Loaded) -->
-            <div class="text-center text-muted small my-2" id="kbot-loading" style="display: none;">Memuat histori...</div>
-            <div class="d-flex mb-3">
-                <div class="bg-light p-3 rounded-3" style="max-width: 85%; border-bottom-left-radius: 0;">
-                    Halo! Saya kBot. Ada keluhan apa hari ini?
-                </div>
+        <div id="kbot-messages" class="kbot-messages">
+            <!-- Messages load here -->
+            <div class="message-bubble message-bot">
+                Halo! Saya kBot. Ada keluhan apa hari ini?
             </div>
         </div>
         
-        <div style="padding: 10px; background: white; border-top: 1px solid #e2e8f0; display: flex;">
-            <input type="text" id="kbot-input" class="form-control form-control-sm" placeholder="Tulis gejala atau keluhan..." style="border-radius: 20px; border-top-right-radius: 0; border-bottom-right-radius: 0; outline: none; box-shadow: none;">
-            <button id="send-kbot" class="btn btn-primary btn-sm" style="border-radius: 20px; border-top-left-radius: 0; border-bottom-left-radius: 0;"><i class="fa-solid fa-paper-plane"></i></button>
+        <div class="kbot-input-area">
+            <input type="text" id="kbot-input" class="kbot-input" placeholder="Tulis gejala atau keluhan...">
+            <button id="send-kbot" class="kbot-send-btn"><i class="fa-solid fa-paper-plane"></i></button>
         </div>
     </div>
     

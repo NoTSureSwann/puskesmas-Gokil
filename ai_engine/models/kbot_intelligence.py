@@ -1,9 +1,11 @@
 import numpy as np
 import scipy.integrate as integrate
 import re
+from .severity_scorer import SeverityScorer
 
 class KBotIntelligence:
     def __init__(self):
+        self.severity_scorer = SeverityScorer()
         # Basis data gejala vs. dokter spesialis (dummy vector space)
         # Vector features: [Demam, Batuk, Nyeri, Pusing, Mual, Hamil/Kandungan, Gizi/Tumbuh Kembang, Endemik/Malaria]
         self.symptom_space = {
@@ -28,16 +30,40 @@ class KBotIntelligence:
         """Memetakan teks ke vektor fitur dan mencari kecocokan tertinggi (Aljabar Linear)"""
         # Parsing teks sederhana ke vektor (Demam, Batuk, Nyeri, Pusing, Mual, Hamil, Gizi, Endemik)
         t = text.lower()
-        vec = np.array([
-            1.0 if "demam" in t or "panas" in t else 0.0,
-            1.0 if "batuk" in t else 0.0,
-            1.0 if "nyeri" in t or "sakit" in t else 0.0,
-            1.0 if "pusing" in t else 0.0,
-            1.0 if "mual" in t or "muntah" in t else 0.0,
-            1.0 if "hamil" in t or "kandungan" in t or "nifas" in t or "melahirkan" in t else 0.0,
-            1.0 if "kurus" in t or "gizi" in t or "berat badan" in t or "stunting" in t else 0.0,
-            1.0 if "malaria" in t or "dbd" in t or "nyamuk" in t or "tropis" in t or "hutan" in t else 0.0,
-        ])
+        
+        # Ekstraksi dan setting nilai fitur (0.0 - 1.0)
+        demam = 1.0 if "demam" in t or "panas" in t else 0.0
+        batuk = 1.0 if "batuk" in t else 0.0
+        nyeri = 1.0 if "nyeri" in t or "sakit" in t else 0.0
+        pusing = 1.0 if "pusing" in t else 0.0
+        mual = 1.0 if "mual" in t or "muntah" in t else 0.0
+        hamil = 1.0 if "hamil" in t or "kandungan" in t or "nifas" in t or "melahirkan" in t else 0.0
+        gizi = 1.0 if "kurus" in t or "gizi" in t or "berat badan" in t or "stunting" in t else 0.0
+        endemik = 1.0 if "malaria" in t or "dbd" in t or "nyamuk" in t or "tropis" in t or "hutan" in t else 0.0
+        
+        # Fallback vocabulary lebih kaya:
+        if "mules" in t:
+            nyeri = max(nyeri, 1.0)
+            mual = max(mual, 1.0)
+        if "lemas" in t:
+            nyeri = max(nyeri, 0.5)
+        if "kembung" in t:
+            mual = max(mual, 0.8)
+        if "bab cair" in t:
+            mual = max(mual, 0.8)
+            nyeri = max(nyeri, 0.5)
+        if "vertigo" in t:
+            pusing = max(pusing, 1.0)
+        if "migrain" in t:
+            pusing = max(pusing, 1.0)
+            nyeri = max(nyeri, 0.8)
+        if "sesak" in t:
+            nyeri = max(nyeri, 0.4)
+        if "hamil muda" in t:
+            hamil = max(hamil, 1.0)
+            mual = max(mual, 0.9)
+
+        vec = np.array([demam, batuk, nyeri, pusing, mual, hamil, gizi, endemik])
         
         best_match = None
         highest_sim = -1
@@ -50,16 +76,17 @@ class KBotIntelligence:
                 highest_sim = sim
                 best_match = doctor
                 
-        return best_match, similarities
+        return best_match, similarities, vec.tolist()
 
-    def calculate_severity_area(self, text):
-        """Mock calculation for severity area based on symptom intensity"""
-        return 5.0
+    def calculate_severity_area(self, text, nlp_confidence=0.5):
+        """Menghitung severity score menggunakan SeverityScorer"""
+        return self.severity_scorer.score(text, nlp_confidence)
 
-    def classify_severity_quartile(self, score):
-        return {"Status": "Sedang"}
+    def classify_severity_quartile(self, score_dict):
+        # Sudah dihandle oleh SeverityScorer
+        return {"Status": score_dict["status"], "cdc_triage": score_dict["cdc_triage"], "action": score_dict["action"], "raw_score": score_dict["raw_score"]}
 
-    def process_request(self, text):
+    def process_request(self, text, nlp_result=None):
         """Pipeline utama: HIPAA Anonymize -> Vector Mapping -> Severity Area -> IHR/CDC/WHO Standardization"""
         # 1. Kepatuhan Privasi (HIPAA) - PII Scrubber
         # Menghapus pola nomor telepon (10-13 digit) dan alamat email
@@ -67,26 +94,22 @@ class KBotIntelligence:
         text_safe = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[REDACTED_EMAIL]', text_safe)
         
         # 2. Aljabar Linear: Pencocokan Vektor Gejala
-        recommended_doctor, matrix_sim = self.analyze_symptoms_matrix(text_safe)
+        recommended_doctor, matrix_sim, symptom_vector = self.analyze_symptoms_matrix(text_safe)
+        
+        # Override dokter jika nlp_result disediakan
+        if nlp_result is not None and "doctor" in nlp_result:
+            recommended_doctor = nlp_result["doctor"]
+            confidence = nlp_result.get("confidence", 0.5)
+        else:
+            confidence = 0.5
         
         # 3. Kalkulus: Menghitung Severity Area
-        severity_area = self.calculate_severity_area(text_safe)
+        score_dict = self.calculate_severity_area(text_safe, confidence)
         
         # 4. Statistika Dasar & Standar CDC Triage
-        quartile_data = self.classify_severity_quartile(severity_area)
-        
-        # Penentuan CDC Triage (Merah, Kuning, Hijau)
-        if "Kritis" in quartile_data["Status"]:
-            cdc_triage = "RED TAG (Immediate/Darurat)"
-            action = "Segera hubungi IGD."
-        elif "Sedang" in quartile_data["Status"]:
-            cdc_triage = "YELLOW TAG (Urgent/Observasi)"
-            action = "Perlu observasi medis segera."
-        else:
-            cdc_triage = "GREEN TAG (Non-Urgent/Aman)"
-            action = "Kondisi stabil, dapat ditangani dengan rawat jalan."
-            
-        quartile_data["cdc_triage"] = cdc_triage
+        quartile_data = self.classify_severity_quartile(score_dict)
+        cdc_triage = quartile_data["cdc_triage"]
+        action = quartile_data["action"]
 
         # 5. WHO ICD-10 & IHR (PHEIC)
         # Dictionary sederhana ICD-10
@@ -149,8 +172,9 @@ class KBotIntelligence:
 
         parameter_1 = response_text
         parameter_2 = {
+            "symptom_vector": symptom_vector,
             "linear_algebra_matrix_similarity": matrix_sim,
-            "integral_severity_area_auc": severity_area,
+            "integral_severity_area_auc": score_dict["raw_score"],
             "statistical_quartiles": quartile_data,
             "ai_lifestyle_prescription": ai_lifestyle,
             "international_standards": {
