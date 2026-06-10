@@ -86,6 +86,13 @@
                         <label for="keluhan" class="form-label fw-semibold small text-dark">Rincian Keluhan Penyakit & Gejala Sakit secara Detail <span class="text-danger">*</span></label>
                         <textarea x-model="keluhanText" class="form-control @error('keluhan') is-invalid @enderror" id="keluhan" name="keluhan" rows="5" placeholder="Tuliskan keluhan secara detail. Contoh: Mengalami demam tinggi naik-turun sejak 3 hari yang lalu, kepala terasa pusing berat, mual saat makan, dan ada ruam merah kecil di area lengan." required>{{ old('keluhan') }}</textarea>
                         
+                        <!-- Hidden AI inputs for dataset collection -->
+                        <input type="hidden" name="ai_run" :value="showResult ? '1' : '0'">
+                        <input type="hidden" name="ai_kemungkinan_penyakit" :value="showResult ? JSON.stringify(result.kemungkinan_penyakit) : ''">
+                        <input type="hidden" name="ai_tingkat_urgensi" :value="showResult ? result.tingkat_urgensi : ''">
+                        <input type="hidden" name="ai_rekomendasi_poli_nama" :value="showResult ? result.rekomendasi_poli_nama : ''">
+                        <input type="hidden" name="ai_saran_tindakan" :value="showResult ? result.saran_tindakan : ''">
+                        
                         <div class="d-flex justify-content-between align-items-start mt-2">
                             <span class="form-text text-muted small flex-grow-1 me-2">Harap jelaskan gejala secara detail untuk mempermudah pemeriksaan awal oleh dokter.</span>
                             <button type="button" @click="analyze" class="btn btn-sm btn-info text-white rounded-pill px-3 shadow-sm d-flex align-items-center" :class="{'pulse-animation': !isLoading}" :disabled="isLoading || keluhanText.length < 10" style="min-width: 130px;">

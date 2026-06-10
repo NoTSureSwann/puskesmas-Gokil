@@ -397,4 +397,85 @@ class AdminDashboardController extends Controller
 
         return redirect()->route('admin.obat.index')->with('status', "Obat {$obat->nama_obat} berhasil dihapus.");
     }
+
+    /**
+     * Tampilkan daftar dataset keluhan & analisis AI.
+     */
+    public function laporanAiDataset(Request $request): View
+    {
+        $datasets = \App\Models\AiDataset::with('kunjungan.pasien.user')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return view('admin.laporan.ai_dataset', compact('datasets'));
+    }
+
+    /**
+     * Ekspor dataset AI dalam format json atau csv (log export).
+     */
+    public function exportAiDataset(string $format)
+    {
+        $datasets = \App\Models\AiDataset::with('kunjungan.pasien.user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        if ($format === 'json') {
+            $data = $datasets->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'kunjungan_no' => $item->kunjungan ? $item->kunjungan->no_kunjungan : null,
+                    'tanggal_kunjungan' => $item->kunjungan ? $item->kunjungan->tanggal_kunjungan : null,
+                    'pasien_nama' => $item->kunjungan && $item->kunjungan->pasien && $item->kunjungan->pasien->user ? $item->kunjungan->pasien->user->name : 'Anonim',
+                    'keluhan' => $item->keluhan,
+                    'kemungkinan_penyakit' => $item->kemungkinan_penyakit,
+                    'tingkat_urgensi' => $item->tingkat_urgensi,
+                    'rekomendasi_poli_nama' => $item->rekomendasi_poli_nama,
+                    'saran_tindakan' => $item->saran_tindakan,
+                    'is_printed' => $item->is_printed,
+                    'dicetak_pada' => $item->dicetak_pada ? $item->dicetak_pada->toIso8601String() : null,
+                    'created_at' => $item->created_at ? $item->created_at->toIso8601String() : null,
+                ];
+            });
+
+            return response()->json($data, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+                ->header('Content-Disposition', 'attachment; filename="ai_symptom_dataset.json"');
+        } elseif ($format === 'csv') {
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="ai_symptom_dataset.csv"',
+            ];
+
+            $callback = function () use ($datasets) {
+                $file = fopen('php://output', 'w');
+                // CSV header
+                fputcsv($file, [
+                    'ID', 'No Kunjungan', 'Tanggal Kunjungan', 'Nama Pasien', 
+                    'Keluhan', 'Kemungkinan Penyakit', 'Tingkat Urgensi', 
+                    'Rekomendasi Poli', 'Saran Tindakan', 'Sudah Dicetak', 'Waktu Cetak', 'Tanggal Dibuat'
+                ]);
+
+                foreach ($datasets as $item) {
+                    fputcsv($file, [
+                        $item->id,
+                        $item->kunjungan ? $item->kunjungan->no_kunjungan : '',
+                        $item->kunjungan ? $item->kunjungan->tanggal_kunjungan : '',
+                        $item->kunjungan && $item->kunjungan->pasien && $item->kunjungan->pasien->user ? $item->kunjungan->pasien->user->name : 'Anonim',
+                        $item->keluhan,
+                        implode(', ', $item->kemungkinan_penyakit ?? []),
+                        $item->tingkat_urgensi,
+                        $item->rekomendasi_poli_nama,
+                        $item->saran_tindakan,
+                        $item->is_printed ? 'Ya' : 'Tidak',
+                        $item->dicetak_pada ? $item->dicetak_pada->toDateTimeString() : '',
+                        $item->created_at ? $item->created_at->toDateTimeString() : '',
+                    ]);
+                }
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+
+        return abort(404);
+    }
 }

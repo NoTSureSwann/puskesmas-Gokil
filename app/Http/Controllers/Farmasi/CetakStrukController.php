@@ -60,6 +60,18 @@ class CetakStrukController extends Controller
             'is_reprint' => $isReprint,
         ]);
 
+        // 4b. Update status cetak di ai_datasets jika ada
+        $aiDataset = \App\Models\AiDataset::where('kunjungan_id', $resep->kunjungan_id)->first();
+        if ($aiDataset) {
+            $aiDataset->update([
+                'is_printed' => true,
+                'dicetak_pada' => now(),
+            ]);
+            
+            // Sinkronisasikan ulang ke file JSON dataset
+            \App\Http\Controllers\Pasien\PasienDashboardController::syncDatasetToJsonFile();
+        }
+
         // 5. Stream PDF ke browser
         return $pdf->stream($filename);
     }

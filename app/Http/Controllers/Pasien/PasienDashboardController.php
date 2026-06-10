@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Pasien;
 use App\Events\KunjunganUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Pasien\StoreKunjunganRequest;
+use App\Models\AiDataset;
 use App\Models\Kunjungan;
 use App\Models\Poli;
 use App\Models\ProfilPasien;
@@ -107,6 +108,22 @@ class PasienDashboardController extends Controller
 
         // Kirim Notifikasi & Email
         Auth::user()->notify(new AntrianDigitalNotification($kunjungan));
+
+        // Simpan ke ai_datasets jika analisis AI telah dijalankan
+        if ($request->input('ai_run') === '1') {
+            $kemungkinanPenyakit = json_decode($request->input('ai_kemungkinan_penyakit'), true) ?? [];
+            AiDataset::create([
+                'kunjungan_id' => $kunjungan->id,
+                'keluhan' => $request->keluhan,
+                'kemungkinan_penyakit' => $kemungkinanPenyakit,
+                'tingkat_urgensi' => $request->input('ai_tingkat_urgensi'),
+                'rekomendasi_poli_nama' => $request->input('ai_rekomendasi_poli_nama'),
+                'saran_tindakan' => $request->input('ai_saran_tindakan'),
+            ]);
+
+            // Sync ke JSON file
+            self::syncDatasetToJsonFile();
+        }
 
         return redirect()->route('pasien.kunjungan', $kunjungan->id)
             ->with('status', 'Pendaftaran antrian berhasil! Kartu antrian Anda telah dikirim via email.');
@@ -313,5 +330,37 @@ Pilih SATU kode_poli yang paling tepat. Jangan memberikan penjelasan tambahan, H
                 'saran_tindakan' => 'Sistem AI sedang sibuk. Silakan lanjutkan pendaftaran ke Poli Umum untuk pemeriksaan langsung.'
             ]
         ], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Sinkronisasi database ai_datasets ke file storage JSON
+     */
+    public static function syncDatasetToJsonFile(): void
+    {
+        try {
+            $data = AiDataset::with('kunjungan.pasien.user')
+                ->latest()
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'kunjungan_no' => $item->kunjungan ? $item->kunjungan->no_kunjungan : null,
+                        'tanggal_kunjungan' => $item->kunjungan ? $item->kunjungan->tanggal_kunjungan : null,
+                        'pasien_nama' => $item->kunjungan && $item->kunjungan->pasien && $item->kunjungan->pasien->user ? $item->kunjungan->pasien->user->name : 'Anonim',
+                        'keluhan' => $item->keluhan,
+                        'kemungkinan_penyakit' => $item->kemungkinan_penyakit,
+                        'tingkat_urgensi' => $item->tingkat_urgensi,
+                        'rekomendasi_poli_nama' => $item->rekomendasi_poli_nama,
+                        'saran_tindakan' => $item->saran_tindakan,
+                        'is_printed' => $item->is_printed,
+                        'dicetak_pada' => $item->dicetak_pada ? $item->dicetak_pada->toIso8601String() : null,
+                        'created_at' => $item->created_at ? $item->created_at->toIso8601String() : null,
+                    ];
+                });
+
+            \Illuminate\Support\Facades\Storage::put('ai_dataset.json', json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Sync AI Dataset to JSON error: ' . $e->getMessage());
+        }
     }
 }

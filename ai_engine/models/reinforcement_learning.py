@@ -1,7 +1,6 @@
 import logging
-import gym
+import gymnasium as gym
 from stable_baselines3 import PPO
-from stable_baselines3.common.envs import SimpleMultiObsEnv
 import pandas as pd
 
 def train_rl_agent(db_connection):

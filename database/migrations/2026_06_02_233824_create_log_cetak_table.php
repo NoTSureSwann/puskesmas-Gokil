@@ -13,18 +13,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::connection('sqlite_log')->create('log_cetak', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('resep_id');
-            $table->unsignedBigInteger('farmasi_user_id');
-            $table->string('no_resep', 20);
-            $table->string('nama_pasien');
-            $table->string('filename_pdf');
-            $table->string('path_pdf');
-            $table->timestamp('dicetak_pada');
-            $table->boolean('is_reprint')->default(false);
-            $table->timestamps();
-        });
+        if (!Schema::connection('sqlite_log')->hasTable('log_cetak')) {
+            Schema::connection('sqlite_log')->create('log_cetak', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('resep_id');
+                $table->unsignedBigInteger('farmasi_user_id');
+                $table->string('no_resep', 20);
+                $table->string('nama_pasien');
+                $table->string('filename_pdf');
+                $table->string('path_pdf');
+                $table->timestamp('dicetak_pada');
+                $table->boolean('is_reprint')->default(false);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

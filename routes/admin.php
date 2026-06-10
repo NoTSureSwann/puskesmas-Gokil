@@ -41,4 +41,6 @@ Route::prefix('obat')->name('obat.')->group(function () {
 Route::prefix('laporan')->name('laporan.')->group(function () {
     Route::get('/kunjungan', [AdminDashboardController::class, 'laporanKunjungan'])->name('kunjungan');
     Route::get('/cetak', [AdminDashboardController::class, 'laporanCetak'])->name('cetak');
+    Route::get('/ai-dataset', [AdminDashboardController::class, 'laporanAiDataset'])->name('ai_dataset');
+    Route::get('/ai-dataset/export/{format}', [AdminDashboardController::class, 'exportAiDataset'])->name('ai_dataset.export');
 });

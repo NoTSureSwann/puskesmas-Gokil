@@ -31,6 +31,9 @@
             <a class="nav-link text-dark fw-semibold" href="{{ route('admin.laporan.cetak') }}">
                 <i class="fa-solid fa-print me-1"></i> Audit Cetak Struk (SQLite)
             </a>
+            <a class="nav-link text-dark fw-semibold" href="{{ route('admin.laporan.ai_dataset') }}">
+                <i class="fa-solid fa-robot me-1"></i> Dataset Keluhan AI
+            </a>
         </div>
     </div>
 
