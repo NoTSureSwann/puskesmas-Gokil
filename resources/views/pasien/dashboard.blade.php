@@ -265,19 +265,25 @@
 @endsection
 
 @section('scripts')
-<!-- Include Pusher client JS -->
 <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
 <script>
-    // Inisialisasi Pusher untuk listening realtime update antrian/kunjungan
-    const pusherAppKey = "{{ env('PUSHER_APP_KEY') }}";
-    const pusherCluster = "{{ env('PUSHER_APP_CLUSTER', 'ap1') }}";
+    // Inisialisasi Reverb (Pusher-compatible) untuk listening realtime update antrian/kunjungan
+    const reverbAppKey = "{{ env('REVERB_APP_KEY') }}";
+    const reverbHost = "{{ env('REVERB_HOST', 'localhost') }}";
+    const reverbPort = {{ env('REVERB_PORT', 8080) }};
+    const reverbScheme = "{{ env('REVERB_SCHEME', 'http') }}";
     const activeKunjunganId = "{{ $antrianAktif->id ?? '' }}";
     
-    if (pusherAppKey && activeKunjunganId) {
+    if (reverbAppKey && activeKunjunganId) {
         try {
-            const pusher = new Pusher(pusherAppKey, {
-                cluster: pusherCluster,
-                forceTLS: true
+            const pusher = new Pusher(reverbAppKey, {
+                wsHost: reverbHost,
+                wsPort: reverbPort,
+                wssPort: reverbPort,
+                forceTLS: (reverbScheme === 'https'),
+                disableStats: true,
+                enabledTransports: ['ws', 'wss'],
+                cluster: 'mt1' // Wajib diisi meskipun Reverb tidak memakainya
             });
 
             const channel = pusher.subscribe('kunjungan-channel');
