@@ -24,3 +24,8 @@ Route::get('/resep/create/{kunjunganId}', [ResepController::class, 'create'])->n
 Route::post('/resep', [ResepController::class, 'store'])->name('resep.store');
 Route::get('/resep/{id}', [ResepController::class, 'show'])->name('resep.show');
 Route::get('/riwayat-resep', [ResepController::class, 'riwayatResep'])->name('resep.index');
+
+// ML Analytics & RLHF
+Route::get('/ml-analytics', [\App\Http\Controllers\Dokter\MlAnalyticController::class, 'index'])->name('ml.analytics');
+Route::get('/ml-analytics/realtime-data', [\App\Http\Controllers\Dokter\MlAnalyticController::class, 'realtimeData'])->name('ml.analytics.data');
+Route::post('/ml-analytics/feedback/{id}', [\App\Http\Controllers\Dokter\MlAnalyticController::class, 'submitFeedback'])->name('ml.analytics.feedback');

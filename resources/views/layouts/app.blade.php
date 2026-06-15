@@ -283,6 +283,13 @@
                                     </a>
                                 </li>
                                 @endif
+                                @if(Auth::user()->role === 'dokter')
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('dokter.ml.analytics') }}">
+                                        <i class="fa-solid fa-brain me-2 text-muted"></i> ML Analytics & RLHF
+                                    </a>
+                                </li>
+                                @endif
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form action="{{ route('logout') }}" method="POST" class="d-inline">
