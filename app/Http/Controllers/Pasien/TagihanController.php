@@ -17,7 +17,11 @@ class TagihanController extends Controller
      */
     public function index(): View
     {
-        $pasienId = Auth::user()->pasien->id;
+        $pasien = Auth::user()->pasien;
+        if (!$pasien) {
+            abort(403, 'Profil pasien tidak ditemukan. Silakan hubungi admin.');
+        }
+        $pasienId = $pasien->id;
         
         // Optimasi: O(1) Cache retrieval, mencegah O(N) re-query ke database setiap reload
         $page = request()->query('page', 1);
@@ -42,7 +46,11 @@ class TagihanController extends Controller
      */
     public function show($id): View
     {
-        $pasienId = Auth::user()->pasien->id;
+        $pasien = Auth::user()->pasien;
+        if (!$pasien) {
+            abort(403, 'Profil pasien tidak ditemukan. Silakan hubungi admin.');
+        }
+        $pasienId = $pasien->id;
 
         $tagihan = Pembayaran::query()
             ->whereHas('kunjungan', function($q) use ($pasienId) {
@@ -59,7 +67,11 @@ class TagihanController extends Controller
      */
     public function simulatePayment(Request $request, $id)
     {
-        $pasienId = Auth::user()->pasien->id;
+        $pasien = Auth::user()->pasien;
+        if (!$pasien) {
+            abort(403, 'Profil pasien tidak ditemukan. Silakan hubungi admin.');
+        }
+        $pasienId = $pasien->id;
 
         $tagihan = Pembayaran::query()
             ->whereHas('kunjungan', function($q) use ($pasienId) {
