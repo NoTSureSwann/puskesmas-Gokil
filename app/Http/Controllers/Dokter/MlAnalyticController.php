@@ -30,10 +30,10 @@ class MlAnalyticController extends Controller
             ->get();
 
         $stats = [
-            'total_datasets' => AiDataset::count(),
-            'total_synthetic' => AiDataset::where('is_synthetic', true)->count(),
-            'total_feedbacks' => AiFeedback::count(),
-            'avg_confidence' => AiDataset::where('is_synthetic', false)->avg('nlp_confidence_score') ?? 0,
+            'total_datasets' => AiDataset::query()->count(),
+            'total_synthetic' => AiDataset::query()->where('is_synthetic', true)->count(),
+            'total_feedbacks' => AiFeedback::query()->count(),
+            'avg_confidence' => AiDataset::query()->where('is_synthetic', false)->avg('nlp_confidence_score') ?? 0,
         ];
 
         return view('dokter.ml_analytics', compact('uncertainData', 'stats'));
@@ -45,9 +45,9 @@ class MlAnalyticController extends Controller
     public function realtimeData(): JsonResponse
     {
         // Distribusi Confidence Score (Binning)
-        $highConf = AiDataset::where('is_synthetic', false)->where('nlp_confidence_score', '>=', 0.8)->count();
-        $medConf = AiDataset::where('is_synthetic', false)->whereBetween('nlp_confidence_score', [0.5, 0.79])->count();
-        $lowConf = AiDataset::where('is_synthetic', false)->where('nlp_confidence_score', '<', 0.5)->count();
+        $highConf = AiDataset::query()->where('is_synthetic', false)->where('nlp_confidence_score', '>=', 0.8)->count();
+        $medConf = AiDataset::query()->where('is_synthetic', false)->whereBetween('nlp_confidence_score', [0.5, 0.79])->count();
+        $lowConf = AiDataset::query()->where('is_synthetic', false)->where('nlp_confidence_score', '<', 0.5)->count();
 
         // Data 7 hari terakhir: Sintetis vs Organik
         $dates = collect();
@@ -58,8 +58,8 @@ class MlAnalyticController extends Controller
             $date = now()->subDays($i)->format('Y-m-d');
             $dates->push($date);
             
-            $org = AiDataset::where('is_synthetic', false)->whereDate('created_at', $date)->count();
-            $syn = AiDataset::where('is_synthetic', true)->whereDate('created_at', $date)->count();
+            $org = AiDataset::query()->where('is_synthetic', false)->whereDate('created_at', $date)->count();
+            $syn = AiDataset::query()->where('is_synthetic', true)->whereDate('created_at', $date)->count();
             
             $organic->push($org);
             $synthetic->push($syn);
@@ -81,7 +81,7 @@ class MlAnalyticController extends Controller
     /**
      * Menyimpan RLHF Feedback (Human-in-the-loop).
      */
-    public function submitFeedback(Request $request, $id): RedirectResponse
+    public function submitFeedback(Request $request, string $id): RedirectResponse
     {
         $request->validate([
             'reward_score' => 'required|numeric|in:-1,0,1',

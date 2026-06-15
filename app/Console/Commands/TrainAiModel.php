@@ -54,7 +54,7 @@ class TrainAiModel extends Command
             if ($extension === 'pdf') {
                 $this->line("Menganalisis jurnal: {$fileName}");
                 
-                $exists = KnowledgeBase::where('file_name', $fileName)->exists();
+                $exists = KnowledgeBase::query()->where('file_name', $fileName)->exists();
                 if ($exists) {
                     $this->line("-> Lewati (Sudah dipelajari): {$fileName}");
                     continue;
