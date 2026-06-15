@@ -187,7 +187,8 @@
 
     function displayResult(data, inputHeight) {
         // Sembunyikan empty state, munculkan result
-        emptyState.style.display = 'none';
+        emptyState.classList.remove('d-flex');
+        emptyState.classList.add('d-none');
         resultState.classList.add('show');
 
         // Update Text
@@ -212,7 +213,8 @@
         form.reset();
         resultState.classList.remove('show');
         setTimeout(() => {
-            emptyState.style.display = 'flex';
+            emptyState.classList.remove('d-none');
+            emptyState.classList.add('d-flex');
         }, 400);
     }
 </script>
