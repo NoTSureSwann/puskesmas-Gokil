@@ -30,9 +30,9 @@ class MlAnalyticController extends Controller
             ->get();
 
         $stats = [
-            'total_datasets' => AiDataset::query()->count(),
-            'total_synthetic' => AiDataset::query()->where('is_synthetic', true)->count(),
-            'total_feedbacks' => AiFeedback::query()->count(),
+            'total_datasets' => AiDataset::query()->count('*'),
+            'total_synthetic' => AiDataset::query()->where('is_synthetic', true)->count('*'),
+            'total_feedbacks' => AiFeedback::query()->count('*'),
             'avg_confidence' => AiDataset::query()->where('is_synthetic', false)->avg('nlp_confidence_score') ?? 0,
         ];
 
@@ -45,9 +45,9 @@ class MlAnalyticController extends Controller
     public function realtimeData(): JsonResponse
     {
         // Distribusi Confidence Score (Binning)
-        $highConf = AiDataset::query()->where('is_synthetic', false)->where('nlp_confidence_score', '>=', 0.8)->count();
-        $medConf = AiDataset::query()->where('is_synthetic', false)->whereBetween('nlp_confidence_score', [0.5, 0.79])->count();
-        $lowConf = AiDataset::query()->where('is_synthetic', false)->where('nlp_confidence_score', '<', 0.5)->count();
+        $highConf = AiDataset::query()->where('is_synthetic', false)->where('nlp_confidence_score', '>=', 0.8)->count('*');
+        $medConf = AiDataset::query()->where('is_synthetic', false)->whereBetween('nlp_confidence_score', [0.5, 0.79])->count('*');
+        $lowConf = AiDataset::query()->where('is_synthetic', false)->where('nlp_confidence_score', '<', 0.5)->count('*');
 
         // Data 7 hari terakhir: Sintetis vs Organik
         $dates = collect();
@@ -58,8 +58,8 @@ class MlAnalyticController extends Controller
             $date = now()->subDays($i)->format('Y-m-d');
             $dates->push($date);
             
-            $org = AiDataset::query()->where('is_synthetic', false)->whereDate('created_at', $date)->count();
-            $syn = AiDataset::query()->where('is_synthetic', true)->whereDate('created_at', $date)->count();
+            $org = AiDataset::query()->where('is_synthetic', false)->whereDate('created_at', $date)->count('*');
+            $syn = AiDataset::query()->where('is_synthetic', true)->whereDate('created_at', $date)->count('*');
             
             $organic->push($org);
             $synthetic->push($syn);
