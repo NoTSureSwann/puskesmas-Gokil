@@ -46,4 +46,9 @@ return [
     'dokter' => 'Doctor',
     'farmasi' => 'Pharmacist',
     'admin' => 'Admin',
+
+    // Legal & Terms
+    'terms_agree' => 'I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#legalModal" class="text-primary fw-bold text-decoration-none">Terms & Conditions, Data Privacy Policy (HIPAA & UU PDP)</a>. The information provided above is valid and correct.',
+    'legal_title' => 'Legal Documents & Privacy Policy',
+    'legal_desc' => 'This system complies with personal data protection and electronic medical record standards according to applicable laws.',
 ];

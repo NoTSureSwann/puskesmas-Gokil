@@ -134,8 +134,8 @@
             <td class="value">: {{ $resep->kunjungan->pasien->user->name }}</td>
         </tr>
         <tr>
-            <td class="label">Keluhan</td>
-            <td class="value">: {{ $resep->kunjungan->keluhan }}</td>
+            <td class="label">Poli / Klinik</td>
+            <td class="value">: {{ $resep->kunjungan->poli->nama_poli ?? '-' }}</td>
         </tr>
         <tr>
             <td class="label">Umur / JK</td>

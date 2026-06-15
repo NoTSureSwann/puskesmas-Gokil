@@ -119,7 +119,7 @@
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="terms_conditions" name="terms_conditions" required>
                         <label class="form-check-label small text-slate-600" for="terms_conditions">
-                            Saya menyetujui Syarat & Ketentuan. Informasi di atas adalah sah dan benar.
+                            {!! __('messages.terms_agree') !!}
                         </label>
                     </div>
                 </div>
@@ -135,4 +135,112 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Legalitas & Kebijakan Privasi -->
+<div class="modal fade" id="legalModal" tabindex="-1" aria-labelledby="legalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom-0 bg-primary bg-opacity-10 py-3">
+                <h5 class="modal-title fw-bold text-primary" id="legalModalLabel">
+                    <i class="fa-solid fa-scale-balanced me-2"></i> {{ __('messages.legal_title') ?? 'Dokumen Legalitas & Kebijakan Privasi' }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-slate-600 mb-4">{{ __('messages.legal_desc') ?? 'Sistem ini mematuhi standar perlindungan data pribadi dan rekam medis elektronik sesuai dengan hukum yang berlaku.' }}</p>
+                
+                <div class="row g-3">
+                    <!-- Term of Service -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 bg-light rounded-3 transition-hover">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="fa-solid fa-file-contract fs-3 text-warning me-3"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Terms of Service / Syarat Layanan</h6>
+                                    <a href="{{ asset('legal/Service Terms v22 2021Nov18.pdf') }}" target="_blank" class="small text-decoration-none text-primary fw-medium">Buka Dokumen <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- UU PDP -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 bg-light rounded-3 transition-hover">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="fa-solid fa-file-shield fs-3 text-success me-3"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Pelindungan Data Pribadi (UU PDP)</h6>
+                                    <a href="{{ asset('legal/UU Nomor 27 Tahun 2022.pdf') }}" target="_blank" class="small text-decoration-none text-primary fw-medium">Buka UU No. 27 Th 2022 <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Permenkes / Rekam Medis -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 bg-light rounded-3 transition-hover">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="fa-solid fa-book-medical fs-3 text-danger me-3"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Rekam Medis Elektronik (Permenkes)</h6>
+                                    <a href="{{ asset('legal/permenkes-no-11-tahun-2025.pdf') }}" target="_blank" class="small text-decoration-none text-primary fw-medium">Buka Permenkes <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- HIPAA Basics -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 bg-light rounded-3 transition-hover">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="fa-solid fa-user-lock fs-3 text-info me-3"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-1">HIPAA Privacy Rule Basics</h6>
+                                    <a href="{{ asset('legal/mln909001_2025_05_hipaa_basics_final.pdf') }}" target="_blank" class="small text-decoration-none text-primary fw-medium">Read Guidelines <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ISO 27001 -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 bg-light rounded-3 transition-hover">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="fa-solid fa-shield-halved fs-3 text-secondary me-3"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Keamanan Informasi (ISO 27001)</h6>
+                                    <a href="{{ asset('legal/NQA-ISO-27001-Implementation-Guide.pdf') }}" target="_blank" class="small text-decoration-none text-primary fw-medium">Buka Panduan <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Kebijakan Tambahan -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 bg-light rounded-3 transition-hover">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="fa-solid fa-file-invoice fs-3 text-primary me-3"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Kebijakan Tambahan (EN)</h6>
+                                    <a href="{{ asset('legal/cb6d9eca-en.pdf') }}" target="_blank" class="small text-decoration-none text-primary fw-medium">View Policy <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-4 mb-0 d-flex align-items-center">
+                    <i class="fa-solid fa-circle-exclamation me-3 fs-4"></i>
+                    <p class="mb-0 small text-dark">
+                        Dengan menekan tombol <strong>"Saya Mengerti"</strong> atau melanjutkan pendaftaran, Anda menyatakan telah membaca, mengerti, dan menyetujui seluruh ketentuan di atas.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-primary px-5 py-2 fw-medium rounded-pill" data-bs-dismiss="modal">Saya Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection

@@ -56,4 +56,39 @@ class ProfilPasien extends Model
     {
         return $this->hasMany(Kunjungan::class, 'pasien_id');
     }
+
+    /**
+     * Dapatkan NIK tersensor (Data Masking) sesuai regulasi privasi.
+     */
+    public function getNikMaskedAttribute(): ?string
+    {
+        $nik = $this->nik;
+        $user = \Illuminate\Support\Facades\Auth::user();
+        
+        if (!$user) return $nik;
+        
+        // Dokter dan Pasien ybs boleh melihat versi utuh
+        if ($user->role === 'dokter' || ($user->role === 'pasien' && $this->user_id === $user->id)) {
+            return $nik;
+        }
+        
+        return \App\Services\DataPrivacyService::maskNik($nik);
+    }
+
+    /**
+     * Dapatkan BPJS tersensor (Data Masking) sesuai regulasi privasi.
+     */
+    public function getBpjsMaskedAttribute(): ?string
+    {
+        $bpjs = $this->no_bpjs;
+        $user = \Illuminate\Support\Facades\Auth::user();
+        
+        if (!$user) return $bpjs;
+        
+        if ($user->role === 'dokter' || ($user->role === 'pasien' && $this->user_id === $user->id)) {
+            return $bpjs;
+        }
+        
+        return \App\Services\DataPrivacyService::maskBpjs($bpjs);
+    }
 }

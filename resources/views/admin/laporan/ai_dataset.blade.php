@@ -75,16 +75,11 @@
                             </td>
                             <td>
                                 <div class="text-wrap" style="max-height: 80px; overflow-y: auto; font-size: 0.85rem; line-height: 1.3;">
-                                    {{ $item->keluhan }}
+                                    <span class="text-muted fst-italic"><i class="fa-solid fa-lock"></i> [Rahasia Medis - Disensor]</span>
                                 </div>
                             </td>
                             <td>
-                                @foreach ($item->kemungkinan_penyakit ?? [] as $penyakit)
-                                    <span class="badge bg-secondary mb-1">{{ $penyakit }}</span>
-                                @endforeach
-                                @if(empty($item->kemungkinan_penyakit))
-                                    <span class="text-muted small">-</span>
-                                @endif
+                                <span class="text-muted fst-italic"><i class="fa-solid fa-lock"></i> [Rahasia Medis]</span>
                             </td>
                             <td class="text-center">
                                 <span class="badge" 

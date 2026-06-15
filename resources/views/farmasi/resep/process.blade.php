@@ -47,9 +47,9 @@
                 <div class="mb-3">
                     <span class="text-muted small d-block">NIK / BPJS</span>
                     <span class="text-dark">
-                        {{ $resep->kunjungan->pasien->nik }} 
+                        {{ $resep->kunjungan->pasien->nik_masked }} 
                         @if ($resep->kunjungan->pasien->no_bpjs)
-                            / <span class="badge bg-success-subtle text-success border border-success-subtle">{{ $resep->kunjungan->pasien->no_bpjs }}</span>
+                            / <span class="badge bg-success-subtle text-success border border-success-subtle">{{ $resep->kunjungan->pasien->bpjs_masked }}</span>
                         @endif
                     </span>
                 </div>

@@ -46,4 +46,9 @@ return [
     'dokter' => 'Dokter',
     'farmasi' => 'Farmasi',
     'admin' => 'Admin',
+
+    // Legal & Terms
+    'terms_agree' => 'Saya menyetujui <a href="#" data-bs-toggle="modal" data-bs-target="#legalModal" class="text-primary fw-bold text-decoration-none">Syarat & Ketentuan, Kebijakan Privasi Data (UU PDP & UU ITE)</a>. Informasi di atas adalah sah dan benar.',
+    'legal_title' => 'Dokumen Legalitas & Kebijakan Privasi',
+    'legal_desc' => 'Sistem ini mematuhi standar perlindungan data pribadi dan rekam medis elektronik sesuai dengan hukum yang berlaku.',
 ];

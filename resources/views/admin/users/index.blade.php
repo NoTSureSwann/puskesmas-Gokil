@@ -92,8 +92,8 @@
                                     <div class="small text-dark">NIP: {{ $usr->profilFarmasi->nip ?? '-' }}</div>
                                     <div class="small text-muted">Jabatan: {{ $usr->profilFarmasi->jabatan ?? '-' }}</div>
                                 @elseif ($usr->role === 'pasien')
-                                    <div class="small text-dark">NIK: {{ $usr->profilPasien->nik ?? '-' }}</div>
-                                    <div class="small text-muted">BPJS: {{ $usr->profilPasien->no_bpjs ?? '-' }}</div>
+                                    <div class="small text-dark">NIK: {{ $usr->profilPasien->nik_masked ?? '-' }}</div>
+                                    <div class="small text-muted">BPJS: {{ $usr->profilPasien->bpjs_masked ?? '-' }}</div>
                                 @else
                                     <span class="text-muted small">-</span>
                                 @endif
