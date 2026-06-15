@@ -95,15 +95,16 @@ class AdminDashboardController extends Controller
     public function usersStore(StoreUserRequest $request): RedirectResponse
     {
         DB::transaction(function () use ($request) {
-            $user = User::create([
+            $user = new User([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => $request->role,
                 'phone' => $request->phone,
                 'status' => 'aktif',
                 'email_verified_at' => now(), // Verifikasi otomatis oleh admin
             ]);
+            $user->role = $request->role;
+            $user->save();
 
             if ($user->role === 'dokter') {
                 ProfilDokter::create([

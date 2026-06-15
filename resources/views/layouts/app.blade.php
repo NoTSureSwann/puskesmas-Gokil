@@ -255,8 +255,8 @@
                             <i class="fa-solid fa-earth-americas text-primary me-1"></i> {{ strtoupper(App::getLocale()) }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
-                            <li><a class="dropdown-item py-2 {{ App::getLocale() == 'id' ? 'active bg-primary text-white' : '' }}" href="{{ route('lang.switch', 'id') }}">🇮🇩 Indonesia</a></li>
-                            <li><a class="dropdown-item py-2 {{ App::getLocale() == 'en' ? 'active bg-primary text-white' : '' }}" href="{{ route('lang.switch', 'en') }}">🇬🇧 English</a></li>
+                            <li><a class="dropdown-item py-2 {{ App::getLocale() == 'id' ? 'active bg-primary text-white' : '' }}" href="{{ route('lang.switch', ['locale' => 'id']) }}">🇮🇩 Indonesia</a></li>
+                            <li><a class="dropdown-item py-2 {{ App::getLocale() == 'en' ? 'active bg-primary text-white' : '' }}" href="{{ route('lang.switch', ['locale' => 'en']) }}">🇬🇧 English</a></li>
                         </ul>
                     </li>
 
@@ -278,7 +278,7 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item py-2" href="{{ route('stunting') }}">
+                                    <a class="dropdown-item py-2" href="{{ route('pasien.stunting') }}">
                                         <i class="fa-solid fa-baby me-2 text-muted"></i> Kalkulator Stunting
                                     </a>
                                 </li>

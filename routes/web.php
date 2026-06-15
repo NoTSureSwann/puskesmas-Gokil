@@ -55,9 +55,7 @@ Route::get('/api/algo/search', function (\Illuminate\Http\Request $request) {
     ]);
 });
 
-Route::get('/register/{role}', [AuthController::class, 'showRegisterForm'])
-    ->name('register')
-    ->where('role', 'pasien|dokter|admin');
+Route::get('/register/pasien', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit')->middleware('throttle:99,30');
 
 Route::get('/login/{role?}', [AuthController::class, 'showLoginForm'])->name('login');

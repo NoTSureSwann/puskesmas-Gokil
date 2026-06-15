@@ -34,11 +34,9 @@ class AuthController extends Controller
      * Tampilkan form registrasi berdasarkan role.
      * Hanya role 'pasien' yang diperbolehkan registrasi mandiri.
      */
-    public function showRegisterForm(string $role): View|RedirectResponse
+    public function showRegisterForm(Request $request): View|RedirectResponse
     {
-        if (!in_array($role, ['pasien', 'dokter', 'farmasi', 'admin'])) {
-            return redirect()->route('login')->with('error', 'Role tidak valid.');
-        }
+        $role = 'pasien';
 
         return view('auth.register.' . $role, compact('role'));
     }
@@ -48,34 +46,23 @@ class AuthController extends Controller
      */
     public function register(Request $request): RedirectResponse
     {
-        // Validasi dasar untuk role
-        $request->validate([
-            'role' => ['required', 'in:pasien,dokter,farmasi,admin'],
-        ]);
-
-        $role = $request->role;
+        // Secara paksa men-set role hanya sebagai pasien untuk publik
+        $role = 'pasien';
 
         // Resolve spesifik FormRequest berdasarkan role
-        if ($role === 'pasien') {
-            $validatedRequest = app(RegisterPasienRequest::class);
-        } elseif ($role === 'dokter') {
-            $validatedRequest = app(RegisterDokterRequest::class);
-        } elseif ($role === 'farmasi') {
-            $validatedRequest = app(RegisterFarmasiRequest::class);
-        } else {
-            $validatedRequest = app(RegisterAdminRequest::class);
-        }
+        $validatedRequest = app(RegisterPasienRequest::class);
 
         // 1. Simpan user baru (langsung terverifikasi)
-        $user = User::create([
+        $user = new User([
             'name' => $validatedRequest->name,
             'email' => $validatedRequest->email,
             'password' => Hash::make($validatedRequest->password),
-            'role' => $role,
             'phone' => $validatedRequest->phone,
             'status' => 'aktif',
             'email_verified_at' => now(),
         ]);
+        $user->role = $role; // Set manual karena role sudah dihapus dari $fillable
+        $user->save();
 
         // 2. Simpan profil berdasarkan role
         if ($role === 'pasien') {
@@ -93,22 +80,6 @@ class AuthController extends Controller
                 'jenis_pasien' => $validatedRequest->jenis_pasien ?? 'umum',
                 'riwayat_alergi' => $validatedRequest->riwayat_alergi,
                 'golongan_darah' => $validatedRequest->golongan_darah ?? 'Tidak Tahu',
-            ]);
-        } elseif ($role === 'dokter') {
-            ProfilDokter::create([
-                'user_id' => $user->id,
-                'nip' => $validatedRequest->nip,
-                'sip' => $validatedRequest->sip,
-                'spesialisasi' => $validatedRequest->spesialisasi,
-                'poli' => $validatedRequest->poli,
-                'harga_konsultasi' => $validatedRequest->harga_konsultasi,
-                'jam_kerja' => $validatedRequest->jam_kerja,
-            ]);
-        } elseif ($role === 'farmasi') {
-            ProfilFarmasi::create([
-                'user_id' => $user->id,
-                'nip' => $validatedRequest->nip,
-                'jabatan' => $validatedRequest->jabatan,
             ]);
         }
 

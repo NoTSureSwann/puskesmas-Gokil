@@ -15,6 +15,7 @@
     "dependencies": {
         "@popperjs/core": "^2.11.8",
         "alpinejs": "^3.15.12",
-        "bootstrap": "^5.3.8"
+        "bootstrap": "^5.3.8",
+        "cypress": "^15.17.0"
     }
 }

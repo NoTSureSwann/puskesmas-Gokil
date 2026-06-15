@@ -105,6 +105,7 @@
                         <input type="hidden" name="ai_tingkat_urgensi" :value="showResult ? result.tingkat_urgensi : ''">
                         <input type="hidden" name="ai_rekomendasi_poli_nama" :value="showResult ? result.rekomendasi_poli_nama : ''">
                         <input type="hidden" name="ai_saran_tindakan" :value="showResult ? result.saran_tindakan : ''">
+                        <input type="hidden" name="ai_confidence_score" :value="showResult ? result.confidence_score : ''">
                         
                         <div class="d-flex justify-content-between align-items-start mt-2">
                             <span class="form-text text-muted small flex-grow-1 me-2">Harap jelaskan gejala secara detail untuk mempermudah pemeriksaan awal oleh dokter.</span>

@@ -114,6 +114,8 @@ class PasienDashboardController extends Controller
         // Simpan ke ai_datasets jika analisis AI telah dijalankan
         if ($request->input('ai_run') === '1') {
             $kemungkinanPenyakit = json_decode($request->input('ai_kemungkinan_penyakit'), true) ?? [];
+            $confidence = (int) $request->input('ai_confidence_score');
+            
             AiDataset::create([
                 'kunjungan_id' => $kunjungan->id,
                 'keluhan' => $request->keluhan,
@@ -121,6 +123,8 @@ class PasienDashboardController extends Controller
                 'tingkat_urgensi' => $request->input('ai_tingkat_urgensi'),
                 'rekomendasi_poli_nama' => $request->input('ai_rekomendasi_poli_nama'),
                 'saran_tindakan' => $request->input('ai_saran_tindakan'),
+                'needs_annotation' => $confidence < 65 ? true : false,
+                'is_synthetic' => false,
             ]);
 
             // Sync ke JSON file
@@ -323,17 +327,18 @@ class PasienDashboardController extends Controller
             ], 500);
         }
 
-        $systemPrompt = "Anda adalah AI Asisten Dokter di Puskesmas. Tugas Anda menganalisis keluhan pasien dan memberikan saran terstruktur dalam format JSON.
+$systemPrompt = "Anda adalah AI Asisten Dokter di Puskesmas. Tugas Anda menganalisis keluhan pasien dan memberikan saran terstruktur dalam format JSON.
 Format JSON yang diharapkan:
 {
   \"kemungkinan_penyakit\": [\"Nama Penyakit 1\", \"Nama Penyakit 2\"],
   \"kode_poli\": \"PL-UMM\",
   \"tingkat_urgensi\": \"Rendah\" | \"Sedang\" | \"Tinggi\",
-  \"saran_tindakan\": \"Saran medis awal untuk pasien di rumah\"
+  \"saran_tindakan\": \"Saran medis awal untuk pasien di rumah\",
+  \"confidence_score\": 85
 }
 Daftar kode_poli yang tersedia: 
 PL-UMM (Poli Umum), PL-GGI (Poli Gigi), PL-DLM (Poli Penyakit Dalam), PL-ANK (Poli Anak), PL-OBG (Poli Kandungan), PL-BDH (Poli Bedah), PL-SRF (Poli Saraf).
-Pilih SATU kode_poli yang paling tepat. Jangan memberikan penjelasan tambahan, HANYA kembalikan JSON valid.";
+Pilih SATU kode_poli yang paling tepat. Jangan memberikan penjelasan tambahan, HANYA kembalikan JSON valid. confidence_score adalah persentase keyakinan Anda (0-100).";
 
         try {
             $response = Http::withHeaders([
@@ -363,7 +368,8 @@ Pilih SATU kode_poli yang paling tepat. Jangan memberikan penjelasan tambahan, H
                             'rekomendasi_poli_id' => $poli ? $poli->id : null,
                             'rekomendasi_poli_nama' => $poli ? $poli->nama_poli : 'Poli Umum',
                             'tingkat_urgensi' => $result['tingkat_urgensi'] ?? 'Rendah',
-                            'saran_tindakan' => $result['saran_tindakan'] ?? 'Segera periksakan ke dokter.'
+                            'saran_tindakan' => $result['saran_tindakan'] ?? 'Segera periksakan ke dokter.',
+                            'confidence_score' => $result['confidence_score'] ?? 50
                         ]
                     ], 200, [], JSON_UNESCAPED_UNICODE);
                 }

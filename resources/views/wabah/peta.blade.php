@@ -70,6 +70,50 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-4">
+        <!-- Live Counters -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient text-white" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="bg-white bg-opacity-25 rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-users fs-3"></i>
+                    </div>
+                    <div>
+                        <p class="mb-0 text-white-50 fw-medium">Kunjungan Hari Ini</p>
+                        <h2 class="mb-0 fw-bold" id="stat-kunjungan">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient text-white" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="bg-white bg-opacity-25 rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-virus-covid fs-3"></i>
+                    </div>
+                    <div>
+                        <p class="mb-0 text-white-50 fw-medium">Kasus Bahaya Tinggi</p>
+                        <h2 class="mb-0 fw-bold" id="stat-kasus-tinggi">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient text-white" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                <div class="card-body p-4 d-flex align-items-center">
+                    <div class="bg-white bg-opacity-25 rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-satellite-dish fs-3"></i>
+                    </div>
+                    <div>
+                        <p class="mb-0 text-white-50 fw-medium">Klaster Wabah Aktif</p>
+                        <h2 class="mb-0 fw-bold" id="stat-klaster">0</h2>
+                        <small class="text-white-50 d-block mt-1" style="font-size: 0.7rem;"><i class="fa-solid fa-rotate fa-spin"></i> Live Sync</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <!-- MAP SECTION -->
         <div class="col-lg-8">
@@ -158,83 +202,102 @@
             shadowSize: [41, 41]
         });
 
-        // 2. Fetch Data Wabah Geospasial
-        fetch('{{ route('api.wabah') }}')
-            .then(response => response.json())
-            .then(res => {
-                if(res.success && res.data.length > 0) {
-                    let aiHtml = '';
-                    
-                    res.data.forEach((wabah, index) => {
-                        // Tentukan style marker & radius berdasarkan bahaya
-                        let mIcon = blueIcon;
-                        let circleColor = '#3b82f6';
-                        
-                        if(wabah.tingkat_bahaya === 'Tinggi') {
-                            mIcon = redIcon;
-                            circleColor = '#ef4444';
-                        } else if (wabah.tingkat_bahaya === 'Sedang') {
-                            mIcon = orangeIcon;
-                            circleColor = '#f59e0b';
+        // Layer Group for easy clearing
+        const markersLayer = L.layerGroup().addTo(map);
+
+        // 2. Fetch Data Wabah Geospasial Function
+        function fetchWabahData() {
+            fetch('{{ route('api.wabah') }}')
+                .then(response => response.json())
+                .then(res => {
+                    if(res.success) {
+                        // Update Stats
+                        if(res.data.stats) {
+                            document.getElementById('stat-kunjungan').innerText = res.data.stats.kunjungan_hari_ini;
+                            document.getElementById('stat-kasus-tinggi').innerText = res.data.stats.kasus_tingkat_tinggi;
+                            document.getElementById('stat-klaster').innerText = res.data.stats.total_klaster_wabah;
                         }
 
-                        // Add Marker
-                        const marker = L.marker([wabah.latitude, wabah.longitude], {icon: mIcon}).addTo(map);
-                        
-                        // Add Circle (Radius in meters, so km * 1000)
-                        L.circle([wabah.latitude, wabah.longitude], {
-                            color: circleColor,
-                            fillColor: circleColor,
-                            fillOpacity: 0.2,
-                            radius: wabah.radius_km * 1000
-                        }).addTo(map);
+                        if(res.data.outbreaks && res.data.outbreaks.length > 0) {
+                            let aiHtml = '';
+                            markersLayer.clearLayers(); // Clear old markers for real-time update
+                            
+                            res.data.outbreaks.forEach((wabah, index) => {
+                                // Tentukan style marker & radius berdasarkan bahaya
+                                let mIcon = blueIcon;
+                                let circleColor = '#3b82f6';
+                                
+                                if(wabah.tingkat_bahaya === 'Tinggi') {
+                                    mIcon = redIcon;
+                                    circleColor = '#ef4444';
+                                } else if (wabah.tingkat_bahaya === 'Sedang') {
+                                    mIcon = orangeIcon;
+                                    circleColor = '#f59e0b';
+                                }
 
-                        // Popup HTML
-                        const popupHtml = `
-                            <div class="map-popup-custom">
-                                <h6 class="fw-bold mb-1 border-bottom pb-1">${wabah.nama_penyakit}</h6>
-                                <p class="mb-1 small text-muted"><i class="fa-solid fa-location-dot me-1"></i> ${wabah.kota}</p>
-                                <div class="d-flex justify-content-between align-items-center mt-2">
-                                    <span class="badge badge-bahaya-${wabah.tingkat_bahaya} small">Bahaya: ${wabah.tingkat_bahaya}</span>
-                                    <span class="fw-bold fs-6">${wabah.kasus_aktif} Kasus</span>
-                                </div>
-                            </div>
-                        `;
-                        marker.bindPopup(popupHtml);
+                                // Add Marker
+                                const marker = L.marker([wabah.latitude, wabah.longitude], {icon: mIcon}).addTo(markersLayer);
+                                
+                                // Add Circle (Radius in meters, so km * 1000)
+                                L.circle([wabah.latitude, wabah.longitude], {
+                                    color: circleColor,
+                                    fillColor: circleColor,
+                                    fillOpacity: 0.2,
+                                    radius: wabah.radius_km * 1000
+                                }).addTo(markersLayer);
 
-                        // Susun Laporan AI
-                        aiHtml += `
-                            <div class="card border-0 bg-light rounded-4 p-3 mb-3" style="animation: fadeIn 0.5s ease-out ${index * 0.2}s forwards; opacity:0;">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h6 class="fw-bold text-dark mb-0">${wabah.nama_penyakit}</h6>
-                                    <span class="badge badge-bahaya-${wabah.tingkat_bahaya} rounded-pill" style="font-size:0.7rem;">${wabah.tingkat_bahaya}</span>
-                                </div>
-                                <p class="small text-muted mb-2"><i class="fa-solid fa-map-pin text-primary me-1"></i> ${wabah.kota} (Radius ${wabah.radius_km} km)</p>
-                                <div class="p-2 bg-white rounded border-start border-3 border-${wabah.tingkat_bahaya === 'Tinggi' ? 'danger' : (wabah.tingkat_bahaya === 'Sedang' ? 'warning' : 'primary')}">
-                                    <p class="small mb-0 text-slate-700"><i class="fa-solid fa-comment-medical text-muted me-1"></i> ${wabah.rekomendasi_ai}</p>
-                                </div>
-                            </div>
-                        `;
-                    });
+                                // Popup HTML
+                                const popupHtml = `
+                                    <div class="map-popup-custom">
+                                        <h6 class="fw-bold mb-1 border-bottom pb-1">${wabah.nama_penyakit}</h6>
+                                        <p class="mb-1 small text-muted"><i class="fa-solid fa-location-dot me-1"></i> ${wabah.kota}</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <span class="badge badge-bahaya-${wabah.tingkat_bahaya} small">Bahaya: ${wabah.tingkat_bahaya}</span>
+                                            <span class="fw-bold fs-6">${wabah.kasus_aktif} Kasus</span>
+                                        </div>
+                                    </div>
+                                `;
+                                marker.bindPopup(popupHtml);
 
-                    // Jika hanya ada data Jawa, fokuskan ke Jawa secara otomatis
-                    // map.setView([-6.2088, 106.8456], 6);
+                                // Susun Laporan AI
+                                aiHtml += `
+                                    <div class="card border-0 bg-light rounded-4 p-3 mb-3" style="animation: fadeIn 0.5s ease-out ${index * 0.2}s forwards; opacity:0;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="fw-bold text-dark mb-0">${wabah.nama_penyakit}</h6>
+                                            <span class="badge badge-bahaya-${wabah.tingkat_bahaya} rounded-pill" style="font-size:0.7rem;">${wabah.tingkat_bahaya}</span>
+                                        </div>
+                                        <p class="small text-muted mb-2"><i class="fa-solid fa-map-pin text-primary me-1"></i> ${wabah.kota} (Radius ${wabah.radius_km} km)</p>
+                                        <div class="p-2 bg-white rounded border-start border-3 border-${wabah.tingkat_bahaya === 'Tinggi' ? 'danger' : (wabah.tingkat_bahaya === 'Sedang' ? 'warning' : 'primary')}">
+                                            <p class="small mb-0 text-slate-700"><i class="fa-solid fa-comment-medical text-muted me-1"></i> ${wabah.rekomendasi_ai}</p>
+                                        </div>
+                                    </div>
+                                `;
+                            });
 
-                    // Sembunyikan loading dan tampilkan laporan AI
-                    setTimeout(() => {
-                        document.getElementById('ai-loading').style.display = 'none';
-                        document.getElementById('ai-report-content').innerHTML = aiHtml;
-                        document.getElementById('ai-report-content').style.display = 'block';
-                        document.getElementById('ai-action-btn').style.display = 'block';
-                    }, 1500); // Simulasi delay berpikir AI
-                } else {
-                    document.getElementById('ai-loading').innerHTML = '<p class="text-success"><i class="fa-solid fa-check-circle me-1"></i> Tidak ada wabah terdeteksi saat ini.</p>';
-                }
-            })
-            .catch(err => {
-                console.error("Gagal mengambil data wabah:", err);
-                document.getElementById('ai-loading').innerHTML = '<p class="text-danger">Gagal memuat data AI Geospasial.</p>';
-            });
+                            // Sembunyikan loading dan tampilkan laporan AI
+                            setTimeout(() => {
+                                document.getElementById('ai-loading').style.display = 'none';
+                                document.getElementById('ai-report-content').innerHTML = aiHtml;
+                                document.getElementById('ai-report-content').style.display = 'block';
+                                document.getElementById('ai-action-btn').style.display = 'block';
+                            }, 500); // Simulasi delay berpikir AI (dipercepat agar enak dipandang)
+                        } else {
+                            markersLayer.clearLayers();
+                            document.getElementById('ai-loading').innerHTML = '<p class="text-success"><i class="fa-solid fa-check-circle me-1"></i> Tidak ada wabah terdeteksi saat ini.</p>';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error("Gagal mengambil data wabah:", err);
+                    document.getElementById('ai-loading').innerHTML = '<p class="text-danger">Gagal memuat data AI Geospasial.</p>';
+                });
+        }
+
+        // Panggil fungsi pertama kali
+        fetchWabahData();
+
+        // Setup AJAX Polling setiap 10 detik untuk realtime synchronization
+        setInterval(fetchWabahData, 10000);
     });
 </script>
 @endsection
