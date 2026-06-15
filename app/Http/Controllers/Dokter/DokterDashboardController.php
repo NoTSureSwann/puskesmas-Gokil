@@ -93,7 +93,12 @@ class DokterDashboardController extends Controller
         ]);
 
         // Dispatch Event untuk sinkronisasi real-time
-        event(new KunjunganUpdated($kunjungan));
+        try {
+            event(new KunjunganUpdated($kunjungan));
+        } catch (\Exception $e) {
+            // Ignore broadcasting errors (e.g. Pusher not configured)
+            \Illuminate\Support\Facades\Log::warning('Pusher Broadcast Error: ' . $e->getMessage());
+        }
 
         return redirect()->route('dokter.dashboard')
             ->with('status', 'Pasien nomor antrian ' . $kunjungan->no_antrian . ' dipanggil.');
@@ -116,7 +121,11 @@ class DokterDashboardController extends Controller
         $kunjungan->update(['status' => 'diperiksa']);
 
         // Dispatch Event untuk sinkronisasi real-time
-        event(new KunjunganUpdated($kunjungan));
+        try {
+            event(new KunjunganUpdated($kunjungan));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Pusher Broadcast Error: ' . $e->getMessage());
+        }
 
         return redirect()->route('dokter.dashboard')
             ->with('status', 'Pemeriksaan dimulai untuk pasien ' . $kunjungan->pasien->user->name . '.');
