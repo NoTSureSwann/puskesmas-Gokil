@@ -332,6 +332,7 @@ class SecurityValidationTest extends TestCase
             'poli_id' => $poli->id,
             'keluhan' => 'Sakit perut',
             'jenis_kunjungan' => 'umum',
+            'metode_kunjungan' => 'langsung',
             'tanggal_kunjungan' => now()->format('Y-m-d'),
         ]);
 
@@ -398,6 +399,7 @@ class SecurityValidationTest extends TestCase
             'poli_id' => $poli->id,
             'keluhan' => 'Test',
             'jenis_kunjungan' => 'umum',
+            'metode_kunjungan' => 'langsung',
             'tanggal_kunjungan' => '2020-01-01',
         ]);
 
