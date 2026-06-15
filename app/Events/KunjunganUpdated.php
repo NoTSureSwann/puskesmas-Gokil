@@ -47,6 +47,7 @@ class KunjunganUpdated implements ShouldBroadcast
             'no_antrian' => $this->kunjungan->no_antrian,
             'no_kunjungan' => $this->kunjungan->no_kunjungan,
             'pasien_id' => $this->kunjungan->pasien_id,
+            'poli_nama' => $this->kunjungan->poli->nama_poli ?? 'Poli Klinik',
         ];
     }
 }

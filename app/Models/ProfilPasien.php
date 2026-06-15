@@ -31,6 +31,8 @@ class ProfilPasien extends Model
         'jenis_pasien',
         'riwayat_alergi',
         'golongan_darah',
+        'tinggi_badan',
+        'berat_badan',
     ];
 
     protected $casts = [

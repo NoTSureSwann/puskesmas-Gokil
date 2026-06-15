@@ -81,6 +81,19 @@
                         @endif
                     </div>
 
+                    <!-- METODE KUNJUNGAN -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small d-block text-dark">Metode Kunjungan <span class="text-danger">*</span></label>
+                        <div class="form-check form-check-inline mt-1">
+                            <input class="form-check-input" type="radio" name="metode_kunjungan" id="mk_langsung" value="langsung" {{ old('metode_kunjungan', 'langsung') === 'langsung' ? 'checked' : '' }} required>
+                            <label class="form-check-label text-dark" for="mk_langsung">Tatap Muka (Langsung)</label>
+                        </div>
+                        <div class="form-check form-check-inline mt-1">
+                            <input class="form-check-input" type="radio" name="metode_kunjungan" id="mk_telemedisin" value="telemedisin" {{ old('metode_kunjungan') === 'telemedisin' ? 'checked' : '' }} required>
+                            <label class="form-check-label text-dark" for="mk_telemedisin">Telemedisin (Video Call)</label>
+                        </div>
+                    </div>
+
                     <!-- KELUHAN DETAIL -->
                     <div class="mb-4" x-data="aiAnalyzer()">
                         <label for="keluhan" class="form-label fw-semibold small text-dark">Rincian Keluhan Penyakit & Gejala Sakit secara Detail <span class="text-danger">*</span></label>

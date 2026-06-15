@@ -78,4 +78,9 @@ class Kunjungan extends Model
     {
         return $this->hasOne(Resep::class, 'kunjungan_id');
     }
+
+    public function pembayaran(): HasOne
+    {
+        return $this->hasOne(Pembayaran::class, 'kunjungan_id');
+    }
 }

@@ -104,6 +104,14 @@
                             <option value="O" {{ old('golongan_darah', $pasien->golongan_darah) === 'O' ? 'selected' : '' }}>O</option>
                         </select>
                     </div>
+                    <div class="col-md-6">
+                        <label for="tinggi_badan" class="form-label fw-medium small">Tinggi Badan (cm)</label>
+                        <input type="number" class="form-control @error('tinggi_badan') is-invalid @enderror" id="tinggi_badan" name="tinggi_badan" value="{{ old('tinggi_badan', $pasien->tinggi_badan) }}" placeholder="Contoh: 170" min="10" max="300">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="berat_badan" class="form-label fw-medium small">Berat Badan (kg)</label>
+                        <input type="number" class="form-control @error('berat_badan') is-invalid @enderror" id="berat_badan" name="berat_badan" value="{{ old('berat_badan', $pasien->berat_badan) }}" placeholder="Contoh: 65" min="1" max="500">
+                    </div>
                 </div>
 
                 <!-- BAGIAN 3: ALAMAT -->

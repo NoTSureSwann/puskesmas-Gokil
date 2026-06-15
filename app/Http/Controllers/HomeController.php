@@ -19,4 +19,20 @@ class HomeController extends Controller
     {
         return view('home');
     }
+
+    /**
+     * Show the public display for queue announcement.
+     */
+    public function layarAntrean(): View
+    {
+        $antrians = \App\Models\Kunjungan::query()
+            ->whereDate('tanggal_kunjungan', \Carbon\Carbon::today())
+            ->whereIn('status', ['dipanggil', 'diperiksa'])
+            ->with('poli')
+            ->orderBy('updated_at', 'desc')
+            ->take(6)
+            ->get();
+
+        return view('antrean.display', compact('antrians'));
+    }
 }

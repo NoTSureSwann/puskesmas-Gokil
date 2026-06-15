@@ -245,6 +245,9 @@
                     <li class="nav-item">
                         <a class="nav-link text-dark fw-medium" href="{{ route('home') }}">{{ __('messages.beranda') }}</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium" href="{{ route('wabah.peta') }}"><i class="fa-solid fa-map-location-dot text-primary me-1"></i> Peta Wabah</a>
+                    </li>
                     
                     <!-- Language Switcher -->
                     <li class="nav-item dropdown">
@@ -268,6 +271,18 @@
                                         <i class="fa-solid fa-chart-line me-2 text-muted"></i> Dashboard
                                     </a>
                                 </li>
+                                @if(Auth::user()->role === 'pasien')
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('pasien.tagihan.index') }}">
+                                        <i class="fa-solid fa-file-invoice-dollar me-2 text-muted"></i> Tagihan Saya
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('stunting') }}">
+                                        <i class="fa-solid fa-baby me-2 text-muted"></i> Kalkulator Stunting
+                                    </a>
+                                </li>
+                                @endif
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form action="{{ route('logout') }}" method="POST" class="d-inline">

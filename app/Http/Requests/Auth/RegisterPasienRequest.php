@@ -36,14 +36,14 @@ class RegisterPasienRequest extends FormRequest
             'no_kk' => ['nullable', 'string', 'numeric', 'digits:16'],
             'jenis_kelamin' => ['required', 'in:L,P'],
             'tanggal_lahir' => ['required', 'date', 'before_or_equal:today'],
-            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tempat_lahir' => ['nullable', 'string', 'max:100'],
             'golongan_darah' => ['nullable', 'in:A,B,AB,O,Tidak Tahu'],
 
             // Alamat & Jenis Pasien
-            'alamat' => ['required', 'string'],
-            'kelurahan' => ['required', 'string', 'max:100'],
-            'kecamatan' => ['required', 'string', 'max:100'],
-            'jenis_pasien' => ['required', 'in:umum,bpjs'],
+            'alamat' => ['nullable', 'string'],
+            'kelurahan' => ['nullable', 'string', 'max:100'],
+            'kecamatan' => ['nullable', 'string', 'max:100'],
+            'jenis_pasien' => ['nullable', 'in:umum,bpjs'],
             'riwayat_alergi' => ['nullable', 'string'],
         ];
     }

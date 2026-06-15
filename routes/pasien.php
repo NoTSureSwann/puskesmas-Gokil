@@ -16,6 +16,14 @@ Route::post('/analyze-symptoms', [PasienDashboardController::class, 'analyzeSymp
 // Riwayat Kunjungan
 Route::get('/riwayat', [PasienDashboardController::class, 'riwayat'])->name('riwayat');
 Route::get('/kunjungan/{id}', [PasienDashboardController::class, 'showKunjungan'])->name('kunjungan');
+Route::get('/kunjungan/{id}/telemedisin', [PasienDashboardController::class, 'telemedisinRoom'])->name('kunjungan.telemedisin');
+Route::get('/jurnal-kesehatan/{id}/download', [\App\Http\Controllers\Pasien\JurnalKesehatanController::class, 'download'])->name('jurnal.download');
+
+// Tagihan & Pembayaran
+Route::get('/tagihan', [\App\Http\Controllers\Pasien\TagihanController::class, 'index'])->name('tagihan.index');
+Route::get('/tagihan/{id}', [\App\Http\Controllers\Pasien\TagihanController::class, 'show'])->name('tagihan.show');
+Route::post('/tagihan/{id}/pay', [\App\Http\Controllers\Pasien\TagihanController::class, 'simulatePayment'])->name('tagihan.pay');
+
 Route::post('/kunjungan/{id}/batal', [PasienDashboardController::class, 'batalKunjungan'])->name('kunjungan.batal');
 
 // Profile
@@ -24,3 +32,7 @@ Route::put('/profil', [PasienDashboardController::class, 'updateProfil'])->name(
 
 // Notifications
 Route::post('/notifikasi/read', [PasienDashboardController::class, 'markNotificationsAsRead'])->name('notifikasi.read');
+
+// Stunting Calculator
+Route::get('/stunting', [\App\Http\Controllers\Pasien\StuntingController::class, 'index'])->name('stunting');
+Route::post('/stunting/calculate', [\App\Http\Controllers\Pasien\StuntingController::class, 'calculate'])->name('stunting.calculate');

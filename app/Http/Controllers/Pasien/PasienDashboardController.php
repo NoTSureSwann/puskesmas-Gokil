@@ -103,6 +103,8 @@ class PasienDashboardController extends Controller
             'keluhan' => $request->keluhan,
             'status' => 'menunggu',
             'jenis_kunjungan' => $request->jenis_kunjungan,
+            'metode_kunjungan' => $request->metode_kunjungan,
+            'telemedisin_room' => $request->metode_kunjungan === 'telemedisin' ? md5(uniqid('room_', true)) : null,
             'jam_daftar' => now(),
         ]);
 
@@ -132,15 +134,48 @@ class PasienDashboardController extends Controller
     /**
      * Tampilkan riwayat kunjungan pasien (paginated).
      */
-    public function riwayat(): View
+    public function riwayat(Request $request)
     {
-        $pasien = Auth::user()->profilPasien;
-        $kunjungans = Kunjungan::query()->where('pasien_id', $pasien->id)
-            ->with(['poli', 'dokter.user'])
-            ->latest()
-            ->paginate(10);
+        if ($request->ajax()) {
+            $pasien = Auth::user()->profilPasien;
+            $kunjungans = Kunjungan::query()->where('pasien_id', $pasien->id)
+                ->with(['poli', 'dokter.user'])
+                ->select('kunjungan.*');
 
-        return view('pasien.riwayat', compact('kunjungans'));
+            return app('datatables')->of($kunjungans)
+                ->addColumn('tanggal', function ($row) {
+                    return Carbon::parse($row->tanggal_kunjungan)->format('d/m/Y');
+                })
+                ->addColumn('poli_nama', function ($row) {
+                    return $row->poli->nama_poli ?? '-';
+                })
+                ->addColumn('dokter_nama', function ($row) {
+                    return $row->dokter ? 'Dr. ' . $row->dokter->user->name : '-';
+                })
+                ->addColumn('status_badge', function ($row) {
+                    $badges = [
+                        'menunggu' => 'bg-warning text-dark',
+                        'dipanggil' => 'bg-info text-dark',
+                        'diperiksa' => 'bg-primary',
+                        'resep' => 'bg-success',
+                        'selesai' => 'bg-secondary',
+                        'batal' => 'bg-danger'
+                    ];
+                    $class = $badges[$row->status] ?? 'bg-secondary';
+                    return '<span class="badge ' . $class . '">' . ucfirst($row->status) . '</span>';
+                })
+                ->addColumn('action', function ($row) {
+                    $btn = '<a href="' . route('pasien.kunjungan', $row->id) . '" class="btn btn-sm btn-outline-primary mb-1"><i class="fa-solid fa-eye"></i> Detail</a>';
+                    if (in_array($row->status, ['diperiksa', 'resep', 'selesai'])) {
+                        $btn .= ' <a href="' . route('jurnal.download', $row->id) . '" class="btn btn-sm btn-outline-success mb-1" target="_blank"><i class="fa-solid fa-file-pdf"></i> Jurnal PDF</a>';
+                    }
+                    return '<div class="d-flex gap-1 flex-wrap">' . $btn . '</div>';
+                })
+                ->rawColumns(['status_badge', 'action'])
+                ->make(true);
+        }
+
+        return view('pasien.riwayat');
     }
 
     /**
@@ -154,6 +189,23 @@ class PasienDashboardController extends Controller
             ->findOrFail($id);
 
         return view('pasien.kunjungan', compact('kunjungan'));
+    }
+
+    /**
+     * Akses halaman ruang Telemedisin
+     */
+    public function telemedisinRoom(int $id): View|RedirectResponse
+    {
+        $pasien = Auth::user()->profilPasien;
+        $kunjungan = Kunjungan::query()->where('pasien_id', $pasien->id)
+            ->where('metode_kunjungan', 'telemedisin')
+            ->findOrFail($id);
+
+        if (!$kunjungan->telemedisin_room) {
+            return redirect()->route('pasien.kunjungan', $id)->with('error', 'Ruang telemedisin belum tersedia.');
+        }
+
+        return view('telemedicine.room', compact('kunjungan'));
     }
 
     /**
@@ -209,6 +261,8 @@ class PasienDashboardController extends Controller
             'jenis_pasien' => ['required', 'in:umum,bpjs'],
             'riwayat_alergi' => ['nullable', 'string'],
             'golongan_darah' => ['nullable', 'in:A,B,AB,O,Tidak Tahu'],
+            'tinggi_badan' => ['nullable', 'integer', 'min:10', 'max:300'],
+            'berat_badan' => ['nullable', 'integer', 'min:1', 'max:500'],
         ]);
 
         // Update User
@@ -231,6 +285,8 @@ class PasienDashboardController extends Controller
             'jenis_pasien' => $request->jenis_pasien,
             'riwayat_alergi' => $request->riwayat_alergi,
             'golongan_darah' => $request->golongan_darah,
+            'tinggi_badan' => $request->tinggi_badan,
+            'berat_badan' => $request->berat_badan,
         ]);
 
         return redirect()->route('pasien.profil')

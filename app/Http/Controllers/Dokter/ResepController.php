@@ -60,6 +60,11 @@ class ResepController extends Controller
 
         $kunjungan = Kunjungan::query()->where('status', 'diperiksa')->findOrFail($request->kunjungan_id);
 
+        // Security: Mismatch / Double Submission Data Prevention
+        if (Resep::query()->where('kunjungan_id', $kunjungan->id)->exists() || \App\Models\Pembayaran::query()->where('kunjungan_id', $kunjungan->id)->exists()) {
+            return back()->withInput()->with('error', 'Security Alert: Resep atau Tagihan untuk kunjungan ini sudah diterbitkan sebelumnya. Mencegah duplikasi data (Mismatch).');
+        }
+
         // Validasi stok obat cukup sebelum simpan
         foreach ($request->obat as $item) {
             $obat = Obat::findOrFail($item['obat_id']);
@@ -75,7 +80,10 @@ class ResepController extends Controller
             $dateStart = $today->copy()->startOfDay();
             $dateEnd = $today->copy()->endOfDay();
 
-            $countToday = Resep::query()->whereBetween('created_at', [$dateStart, $dateEnd])->count();
+            $countToday = Resep::query()
+                ->where('created_at', '>=', $dateStart)
+                ->where('created_at', '<=', $dateEnd)
+                ->count();
             $sequence = str_pad((string)($countToday + 1), 4, '0', STR_PAD_LEFT);
             $noResep = "RSP-{$dateStr}-{$sequence}";
 
@@ -90,8 +98,14 @@ class ResepController extends Controller
                 'jam_input_resep' => now(),
             ]);
 
-            // 3. Simpan Detail Resep
+            // 3. Simpan Detail Resep & Hitung Biaya Obat
+            $biayaObat = 0;
             foreach ($request->obat as $item) {
+                $obatModel = Obat::query()->where('id', $item['obat_id'])->first();
+                if ($obatModel) {
+                    $biayaObat += ($obatModel->harga_satuan * $item['jumlah']);
+                }
+
                 DetailResep::create([
                     'resep_id' => $resep->id,
                     'obat_id' => $item['obat_id'],
@@ -101,6 +115,17 @@ class ResepController extends Controller
                     'keterangan' => $item['keterangan'] ?? null,
                 ]);
             }
+
+            // 4. Generate Tagihan Pembayaran Otomatis
+            $biayaKonsultasi = $dokter->harga_konsultasi ?? 0;
+            \App\Models\Pembayaran::create([
+                'kunjungan_id' => $kunjungan->id,
+                'kode_pembayaran' => 'PAY-' . strtoupper(uniqid()),
+                'biaya_konsultasi' => $biayaKonsultasi,
+                'biaya_obat' => $biayaObat,
+                'metode_pembayaran' => 'kasir',
+                'status_pembayaran' => 'pending',
+            ]);
 
             // 4. Update status kunjungan menjadi 'resep'
             $kunjungan->update(['status' => 'resep']);

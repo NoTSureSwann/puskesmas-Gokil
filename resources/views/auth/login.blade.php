@@ -4,12 +4,25 @@
 
 @section('styles')
 <style>
+    /* Glassmorphism Design */
+    body {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border-radius: 1.5rem;
+    }
     .login-container {
         max-width: 480px;
         margin: 2rem auto;
     }
     .role-tabs {
-        background: #f1f5f9;
+        background: rgba(241, 245, 249, 0.6);
+        backdrop-filter: blur(4px);
         padding: 6px;
         border-radius: 12px;
         display: flex;
@@ -36,7 +49,7 @@
         font-size: 1.1rem;
     }
     .role-tab-btn.active {
-        background: white;
+        background: rgba(255, 255, 255, 0.9);
         color: var(--primary);
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     }
@@ -54,23 +67,32 @@
     }
     .input-group:focus-within {
         border-color: var(--primary);
-        box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15);
+        box-shadow: 0 0 0 0.25rem rgba(14, 165, 233, 0.25);
         border-radius: 8px;
     }
     .input-group:focus-within .input-group-text,
     .input-group:focus-within .form-control {
         border-color: var(--primary);
     }
+    .form-control {
+        background-color: rgba(255, 255, 255, 0.7);
+        transition: all 0.3s ease;
+    }
+    .form-control:focus {
+        background-color: #fff;
+    }
 </style>
 @endsection
 
 @section('content')
 <div class="login-container animated-fade" x-data="{ activeRole: '{{ old('role', $role ?? 'pasien') }}', showPassword: false }">
-    <div class="card card-premium p-4 p-md-5">
+    <div class="card glass-card p-4 p-md-5">
         <div class="text-center mb-4">
-            <span class="text-primary fs-1"><i class="fa-solid fa-stethoscope"></i></span>
-            <h3 class="fw-bold mt-2">{{ __('messages.login_title') }}</h3>
-            <p class="text-muted small">{{ __('messages.pilih_peran') }}</p>
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle mb-3" style="width: 70px; height: 70px;">
+                <i class="fa-solid fa-stethoscope text-primary fs-2"></i>
+            </div>
+            <h3 class="fw-bold mt-2 text-slate-800">{{ __('messages.login_title') }}</h3>
+            <p class="text-slate-500 small">{{ __('messages.pilih_peran') }}</p>
         </div>
 
         @if ($errors->any())

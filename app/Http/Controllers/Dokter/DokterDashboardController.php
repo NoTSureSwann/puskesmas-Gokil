@@ -139,6 +139,23 @@ class DokterDashboardController extends Controller
     }
 
     /**
+     * Akses halaman ruang Telemedisin untuk Dokter
+     */
+    public function telemedisinRoom(int $id): View|RedirectResponse
+    {
+        $dokter = Auth::user()->profilDokter;
+        $kunjungan = Kunjungan::query()->where('dokter_id', $dokter->id)
+            ->where('metode_kunjungan', 'telemedisin')
+            ->findOrFail($id);
+
+        if (!$kunjungan->telemedisin_room) {
+            return redirect()->route('dokter.dashboard')->with('error', 'Ruang telemedisin belum tersedia.');
+        }
+
+        return view('telemedicine.room', compact('kunjungan'));
+    }
+
+    /**
      * Tampilkan form profil dokter.
      */
     public function showProfil(): View

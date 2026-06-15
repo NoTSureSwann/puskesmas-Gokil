@@ -111,6 +111,9 @@
                                         <span class="badge status-badge status-{{ $antrian->status }}">{{ $antrian->status }}</span>
                                     </td>
                                     <td class="text-center">
+                                        @if ($antrian->metode_kunjungan === 'telemedisin' && in_array($antrian->status, ['menunggu', 'dipanggil', 'diperiksa']))
+                                            <a href="{{ route('dokter.kunjungan.telemedisin', $antrian->id) }}" class="btn btn-sm btn-success text-white mb-1 d-block"><i class="fa-solid fa-video me-1"></i> Telemedisin</a>
+                                        @endif
                                         @if ($antrian->status === 'menunggu')
                                             <form action="{{ route('dokter.kunjungan.panggil', $antrian->id) }}" method="POST" class="d-inline">
                                                 @csrf

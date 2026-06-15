@@ -7,11 +7,17 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Dokter\ResepController;
 use App\Http\Controllers\KbotController;
 use App\Http\Controllers\JurnalKesehatanController;
+use App\Http\Controllers\Public\WabahController;
 use Illuminate\Support\Facades\Route;
 
 // --- PUBLIC ROUTES ---
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/layar-antrean', [HomeController::class, 'layarAntrean'])->name('layar.antrean');
 Route::view('/offline', 'errors.offline')->name('offline');
+
+// Peta Wabah (Public)
+Route::get('/peta-wabah', [WabahController::class, 'index'])->name('wabah.peta');
+Route::get('/api/wabah-data', [WabahController::class, 'getApiData'])->name('api.wabah');
 
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['id', 'en'])) {
@@ -21,6 +27,33 @@ Route::get('/lang/{locale}', function ($locale) {
 })->name('lang.switch');
 Route::get('/api/obat/search', [ResepController::class, 'searchObat'])->name('api.obat.search')->middleware(['auth', 'throttle:30,1']);
 Route::post('/api/kbot/analyze', [KbotController::class, 'analyze'])->name('api.kbot.analyze');
+
+// Algoritma Testing Endpoint (Boyer-Moore vs Sequential)
+Route::get('/api/algo/search', function (\Illuminate\Http\Request $request) {
+    $keyword = $request->get('q', '');
+    if (empty($keyword)) return response()->json(['error' => 'No keyword'], 400);
+
+    // Dummy dataset (misal: Rekam medis sangat besar)
+    $textCorpus = "Pasien mengalami demam tinggi selama tiga hari disertai mual muntah. Terdapat ruam merah pada kulit lengan dan lemas seluruh tubuh. Diagnosis suspek Demam Berdarah Dengue (DBD) atau Typhus perut kronis akut serta malaria endemis.";
+
+    $startBM = microtime(true);
+    $bmResult = \App\Services\SearchAlgorithmService::boyerMooreSearch($textCorpus, $keyword);
+    $timeBM = (microtime(true) - $startBM) * 1000;
+
+    $startSeq = microtime(true);
+    $seqResult = \App\Services\SearchAlgorithmService::sequentialSearch($textCorpus, $keyword);
+    $timeSeq = (microtime(true) - $startSeq) * 1000;
+
+    return response()->json([
+        'keyword' => $keyword,
+        'corpus_length' => strlen($textCorpus),
+        'results' => [
+            'boyer_moore' => ['indices' => $bmResult, 'time_ms' => round($timeBM, 6)],
+            'sequential' => ['indices' => $seqResult, 'time_ms' => round($timeSeq, 6)],
+        ],
+        'faster_algo' => $timeBM < $timeSeq ? 'Boyer-Moore' : 'Sequential'
+    ]);
+});
 
 Route::get('/register/{role}', [AuthController::class, 'showRegisterForm'])
     ->name('register')

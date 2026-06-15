@@ -141,6 +141,9 @@
                     <hr class="my-4">
                     <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
                         <a href="{{ route('pasien.kunjungan', $antrianAktif->id) }}" class="btn btn-outline-primary"><i class="fa-solid fa-circle-info me-2 icon-bounce-hover"></i> Lihat Detail Kunjungan</a>
+                        @if($antrianAktif->metode_kunjungan === 'telemedisin' && in_array($antrianAktif->status, ['menunggu', 'dipanggil', 'diperiksa']))
+                            <a href="{{ route('pasien.kunjungan.telemedisin', $antrianAktif->id) }}" class="btn btn-success"><i class="fa-solid fa-video me-2 icon-bounce-hover"></i> Buka Ruang Telemedisin</a>
+                        @endif
                         @if($antrianAktif->status === 'menunggu')
                             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
                                 <i class="fa-solid fa-ban me-2 icon-bounce-hover"></i> Batalkan Kunjungan

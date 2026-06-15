@@ -14,6 +14,7 @@ Route::put('/profil', [DokterDashboardController::class, 'updateProfil'])->name(
 // Patient Queue Management
 Route::post('/kunjungan/{id}/panggil', [DokterDashboardController::class, 'panggil'])->name('kunjungan.panggil');
 Route::post('/kunjungan/{id}/periksa', [DokterDashboardController::class, 'periksa'])->name('kunjungan.periksa');
+Route::get('/kunjungan/{id}/telemedisin', [DokterDashboardController::class, 'telemedisinRoom'])->name('kunjungan.telemedisin');
 
 // Patient History Search
 Route::get('/pasien/{nik}/riwayat', [DokterDashboardController::class, 'showPasienHistory'])->name('pasien.riwayat');

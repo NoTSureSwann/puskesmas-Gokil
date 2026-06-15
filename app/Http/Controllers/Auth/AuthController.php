@@ -86,13 +86,13 @@ class AuthController extends Controller
                 'no_kk' => $validatedRequest->no_kk,
                 'jenis_kelamin' => $validatedRequest->jenis_kelamin,
                 'tanggal_lahir' => $validatedRequest->tanggal_lahir,
-                'tempat_lahir' => $validatedRequest->tempat_lahir,
-                'alamat' => $validatedRequest->alamat,
-                'kelurahan' => $validatedRequest->kelurahan,
-                'kecamatan' => $validatedRequest->kecamatan,
-                'jenis_pasien' => $validatedRequest->jenis_pasien,
+                'tempat_lahir' => $validatedRequest->tempat_lahir ?? '-',
+                'alamat' => $validatedRequest->alamat ?? '-',
+                'kelurahan' => $validatedRequest->kelurahan ?? '-',
+                'kecamatan' => $validatedRequest->kecamatan ?? '-',
+                'jenis_pasien' => $validatedRequest->jenis_pasien ?? 'umum',
                 'riwayat_alergi' => $validatedRequest->riwayat_alergi,
-                'golongan_darah' => $validatedRequest->golongan_darah,
+                'golongan_darah' => $validatedRequest->golongan_darah ?? 'Tidak Tahu',
             ]);
         } elseif ($role === 'dokter') {
             ProfilDokter::create([

@@ -27,6 +27,7 @@ class StoreKunjunganRequest extends FormRequest
             'poli_id'           => ['required', 'exists:poli,id'],
             'keluhan'           => ['required', 'string', 'max:2000'],
             'jenis_kunjungan'   => ['required', 'in:umum,bpjs'],
+            'metode_kunjungan'  => ['required', 'in:langsung,telemedisin'],
             'tanggal_kunjungan' => ['required', 'date', 'after_or_equal:today'],
         ];
     }
@@ -43,6 +44,8 @@ class StoreKunjunganRequest extends FormRequest
             'keluhan.max'                       => 'Keluhan maksimal 2000 karakter.',
             'jenis_kunjungan.required'          => 'Jenis kunjungan wajib dipilih.',
             'jenis_kunjungan.in'                => 'Jenis kunjungan harus umum atau bpjs.',
+            'metode_kunjungan.required'         => 'Metode kunjungan wajib dipilih.',
+            'metode_kunjungan.in'               => 'Metode kunjungan harus langsung atau telemedisin.',
             'tanggal_kunjungan.required'        => 'Tanggal kunjungan wajib diisi.',
             'tanggal_kunjungan.date'            => 'Format tanggal tidak valid.',
             'tanggal_kunjungan.after_or_equal'  => 'Tanggal kunjungan tidak boleh di masa lalu.',
