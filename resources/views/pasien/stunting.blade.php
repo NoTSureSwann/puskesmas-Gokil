@@ -159,7 +159,7 @@
 
         const formData = new FormData(form);
 
-        fetch('{{ route('stunting.calculate') }}', {
+        fetch('{{ route('pasien.stunting.calculate') }}', {
             method: 'POST',
             body: formData,
             headers: {
