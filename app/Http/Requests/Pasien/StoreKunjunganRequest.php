@@ -25,6 +25,7 @@ class StoreKunjunganRequest extends FormRequest
     {
         return [
             'poli_id'           => ['required', 'exists:poli,id'],
+            'dokter_id'         => ['required', 'exists:users,id'],
             'keluhan'           => ['required', 'string', 'max:2000'],
             'jenis_kunjungan'   => ['required', 'in:umum,bpjs'],
             'metode_kunjungan'  => ['required', 'in:langsung,telemedisin'],
@@ -40,6 +41,8 @@ class StoreKunjunganRequest extends FormRequest
         return [
             'poli_id.required'                  => 'Poli tujuan wajib dipilih.',
             'poli_id.exists'                    => 'Poli yang dipilih tidak valid.',
+            'dokter_id.required'                => 'Dokter pemeriksa wajib dipilih.',
+            'dokter_id.exists'                  => 'Dokter yang dipilih tidak valid.',
             'keluhan.required'                  => 'Keluhan wajib diisi.',
             'keluhan.max'                       => 'Keluhan maksimal 2000 karakter.',
             'jenis_kunjungan.required'          => 'Jenis kunjungan wajib dipilih.',

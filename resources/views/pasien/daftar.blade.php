@@ -40,29 +40,78 @@
                         </div>
                     </div>
 
-                    <!-- POLI TUJUAN -->
-                    <div class="mb-3">
-                        <label for="poli_id" class="form-label fw-semibold small text-dark">Klinik / Poli Tujuan <span class="text-danger">*</span></label>
-                        <select class="form-select @error('poli_id') is-invalid @enderror" id="poli_id" name="poli_id" required>
-                            <option value="" disabled selected>-- Pilih Poli Klinik --</option>
-                            @foreach ($polis as $poli)
-                                <option value="{{ $poli->id }}" {{ old('poli_id') == $poli->id ? 'selected' : '' }}>
-                                    {{ $poli->nama_poli }} ({{ $poli->kode_poli }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('poli_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+                    <div x-data="{ 
+                        selectedPoli: '{{ old('poli_id', '') }}', 
+                        selectedDokter: '{{ old('dokter_id', '') }}',
+                        polis: {{ Js::from($polis) }},
+                        dokters: {{ Js::from($dokters) }},
+                        get availableDokters() {
+                            if (!this.selectedPoli) return [];
+                            let poli = this.polis.find(p => p.id == this.selectedPoli);
+                            if (!poli) return [];
+                            return this.dokters.filter(d => d.profil_dokter?.poli === poli.nama_poli);
+                        },
+                        get selectedDokterProfile() {
+                            if (!this.selectedDokter) return null;
+                            return this.dokters.find(d => d.id == this.selectedDokter);
+                        },
+                        handlePoliChange() {
+                            this.selectedDokter = '';
+                        }
+                    }">
+                        <!-- POLI TUJUAN -->
+                        <div class="mb-3">
+                            <label for="poli_id" class="form-label fw-semibold small text-dark">Klinik / Poli Tujuan <span class="text-danger">*</span></label>
+                            <select class="form-select @error('poli_id') is-invalid @enderror" id="poli_id" name="poli_id" x-model="selectedPoli" @change="handlePoliChange" required>
+                                <option value="" disabled selected>-- Pilih Poli Klinik --</option>
+                                <template x-for="poli in polis" :key="poli.id">
+                                    <option :value="poli.id" x-text="poli.nama_poli + ' (' + poli.kode_poli + ')'" :selected="selectedPoli == poli.id"></option>
+                                </template>
+                            </select>
+                            @error('poli_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
 
-                    <!-- TANGGAL KUNJUNGAN -->
-                    <div class="mb-3">
-                        <label for="tanggal_kunjungan" class="form-label fw-semibold small text-dark">Tanggal Rencana Kunjungan <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control @error('tanggal_kunjungan') is-invalid @enderror" id="tanggal_kunjungan" name="tanggal_kunjungan" min="{{ $today }}" value="{{ old('tanggal_kunjungan', $today) }}" required>
-                        @error('tanggal_kunjungan')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <!-- PILIHAN DOKTER -->
+                        <div class="mb-4" x-show="selectedPoli" style="display: none;" x-transition>
+                            <label for="dokter_id" class="form-label fw-semibold small text-dark">Pilih Dokter Pemeriksa <span class="text-danger">*</span></label>
+                            <select class="form-select @error('dokter_id') is-invalid @enderror" id="dokter_id" name="dokter_id" x-model="selectedDokter" required>
+                                <option value="" disabled selected>-- Pilih Dokter --</option>
+                                <template x-for="doc in availableDokters" :key="doc.id">
+                                    <option :value="doc.id" x-text="doc.name" :selected="selectedDokter == doc.id"></option>
+                                </template>
+                            </select>
+                            @error('dokter_id')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+
+                            <!-- Profil Dokter Card -->
+                            <div class="mt-3 border rounded-3 p-3 bg-light shadow-sm d-flex align-items-center gap-3" x-show="selectedDokterProfile" style="display: none;" x-transition>
+                                <img src="https://ui-avatars.com/api/?name=Dokter&background=0D8ABC&color=fff&size=60" class="rounded-circle shadow-sm" alt="Dokter Avatar">
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold mb-1 text-dark" x-text="selectedDokterProfile?.name"></h6>
+                                    <span class="badge bg-primary-subtle text-primary small py-1" x-text="selectedDokterProfile?.profil_dokter?.spesialisasi"></span>
+                                    <div class="mt-2 small text-muted">
+                                        <div class="mb-1"><i class="fa-regular fa-clock text-primary me-2"></i> Jadwal: <strong x-text="selectedDokterProfile?.profil_dokter?.jam_kerja"></strong></div>
+                                        <div><i class="fa-solid fa-money-bill-wave text-success me-2"></i> Tarif: <strong class="text-success" x-text="'Rp ' + Number(selectedDokterProfile?.profil_dokter?.harga_konsultasi || 0).toLocaleString('id-ID')"></strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2 text-warning small" x-show="availableDokters.length === 0">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Belum ada dokter yang tersedia di Poli ini.
+                            </div>
+                        </div>
+
+                        <!-- TANGGAL KUNJUNGAN -->
+                        <div class="mb-3">
+                            <label for="tanggal_kunjungan" class="form-label fw-semibold small text-dark">Tanggal Rencana Kunjungan <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control @error('tanggal_kunjungan') is-invalid @enderror" id="tanggal_kunjungan" name="tanggal_kunjungan" min="{{ $today }}" value="{{ old('tanggal_kunjungan', $today) }}" required>
+                            @error('tanggal_kunjungan')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
 
                     <!-- JENIS KUNJUNGAN -->
@@ -236,6 +285,7 @@
                         if(this.result.rekomendasi_poli_id) {
                             const selectElement = document.getElementById('poli_id');
                             selectElement.value = this.result.rekomendasi_poli_id;
+                            selectElement.dispatchEvent(new Event('change', { bubbles: true }));
                             
                             // Highlight select element to notify user
                             selectElement.classList.add('pulse-animation', 'border-info');

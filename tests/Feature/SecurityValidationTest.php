@@ -327,10 +327,20 @@ class SecurityValidationTest extends TestCase
             'jam_daftar' => now(),
         ]);
 
-        // Second visit same poli same day
-        $response = $this->actingAs($pasien)->post('/pasien/daftar', [
+        $dokterUser = $this->createUser('dokter');
+        ProfilDokter::create([
+            'user_id' => $dokterUser->id,
+            'nip' => '123456',
+            'sip' => 'SIP-001',
+            'spesialisasi' => 'Umum',
+            'poli' => 'Poli Umum',
+        ]);
+
+        // 6.2 Coba daftar lagi di poli dan tanggal yang sama
+        $response = $this->actingAs($pasien)->post(route('pasien.daftar.submit'), [
             'poli_id' => $poli->id,
-            'keluhan' => 'Sakit perut',
+            'dokter_id' => $dokterUser->id,
+            'keluhan' => 'Demam lagi',
             'jenis_kunjungan' => 'umum',
             'metode_kunjungan' => 'langsung',
             'tanggal_kunjungan' => now()->format('Y-m-d'),
@@ -395,8 +405,18 @@ class SecurityValidationTest extends TestCase
             'jenis_pasien' => 'umum',
         ]);
 
+        $dokterUser = $this->createUser('dokter');
+        ProfilDokter::create([
+            'user_id' => $dokterUser->id,
+            'nip' => '123456',
+            'sip' => 'SIP-001',
+            'spesialisasi' => 'Umum',
+            'poli' => 'Poli Past',
+        ]);
+
         $response = $this->actingAs($pasien)->post('/pasien/daftar', [
             'poli_id' => $poli->id,
+            'dokter_id' => $dokterUser->id,
             'keluhan' => 'Test',
             'jenis_kunjungan' => 'umum',
             'metode_kunjungan' => 'langsung',

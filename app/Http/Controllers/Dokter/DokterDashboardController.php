@@ -37,27 +37,26 @@ class DokterDashboardController extends Controller
         $today = Carbon::today();
 
         // 1. Stats Bar
-        $totalPasienHariIni = Kunjungan::query()->where('poli_id', function ($query) use ($dokter) {
-            $query->select('id')->from('poli')->where('nama_poli', $dokter->poli)->limit(1);
-        })->whereDate('tanggal_kunjungan', $today)->count();
+        $totalPasienHariIni = Kunjungan::query()
+            ->where('dokter_id', $user->id)
+            ->whereDate('tanggal_kunjungan', $today)->count();
 
-        $menungguCount = Kunjungan::query()->where('poli_id', function ($query) use ($dokter) {
-            $query->select('id')->from('poli')->where('nama_poli', $dokter->poli)->limit(1);
-        })->whereDate('tanggal_kunjungan', $today)->where('status', 'menunggu')->count();
+        $menungguCount = Kunjungan::query()
+            ->where('dokter_id', $user->id)
+            ->whereDate('tanggal_kunjungan', $today)->where('status', 'menunggu')->count();
 
-        $selesaiCount = Kunjungan::query()->where('poli_id', function ($query) use ($dokter) {
-            $query->select('id')->from('poli')->where('nama_poli', $dokter->poli)->limit(1);
-        })->whereDate('tanggal_kunjungan', $today)->where('status', 'selesai')->count();
+        $selesaiCount = Kunjungan::query()
+            ->where('dokter_id', $user->id)
+            ->whereDate('tanggal_kunjungan', $today)->where('status', 'selesai')->count();
 
         // 2. Daftar Antrian Pasien Hari Ini (Menunggu, Dipanggil, Diperiksa, Resep)
-        $antrians = Kunjungan::query()->where('poli_id', function ($query) use ($dokter) {
-            $query->select('id')->from('poli')->where('nama_poli', $dokter->poli)->limit(1);
-        })
-        ->whereDate('tanggal_kunjungan', $today)
-        ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa', 'resep'])
-        ->with('pasien.user')
-        ->orderBy('no_antrian', 'asc')
-        ->get();
+        $antrians = Kunjungan::query()
+            ->where('dokter_id', $user->id)
+            ->whereDate('tanggal_kunjungan', $today)
+            ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa', 'resep'])
+            ->with('pasien.user')
+            ->orderBy('no_antrian', 'asc')
+            ->get();
 
         // 3. Resep yang Dibuat Hari Ini oleh Dokter Ini (Limit 5)
         $resepsHariIni = Resep::query()->where('dokter_id', $dokter->id)
@@ -77,19 +76,18 @@ class DokterDashboardController extends Controller
      */
     public function panggil(int $id): RedirectResponse
     {
-        $dokter = Auth::user()->profilDokter;
+        $user = Auth::user();
+        $dokter = $user->profilDokter;
         $kunjungan = Kunjungan::query()->where('status', 'menunggu')->findOrFail($id);
 
-        // Validasi ownership: kunjungan harus di poli milik dokter ini
-        $poliDokter = Poli::query()->where('nama_poli', $dokter->poli)->first();
-        if (!$poliDokter || $kunjungan->poli_id !== $poliDokter->id) {
-            abort(403, 'Anda tidak memiliki akses ke kunjungan di poli ini.');
+        // Validasi ownership: kunjungan harus milik dokter ini
+        if ($kunjungan->dokter_id !== $user->id) {
+            abort(403, 'Anda tidak memiliki akses ke kunjungan ini.');
         }
 
         $kunjungan->update([
             'status' => 'dipanggil',
             'jam_panggil' => now(),
-            'dokter_id' => $dokter->id,
         ]);
 
         // Dispatch Event untuk sinkronisasi real-time
@@ -109,13 +107,13 @@ class DokterDashboardController extends Controller
      */
     public function periksa(int $id): RedirectResponse
     {
-        $dokter = Auth::user()->profilDokter;
+        $user = Auth::user();
+        $dokter = $user->profilDokter;
         $kunjungan = Kunjungan::query()->where('status', 'dipanggil')->findOrFail($id);
 
-        // Validasi ownership: kunjungan harus di poli milik dokter ini
-        $poliDokter = Poli::query()->where('nama_poli', $dokter->poli)->first();
-        if (!$poliDokter || $kunjungan->poli_id !== $poliDokter->id) {
-            abort(403, 'Anda tidak memiliki akses ke kunjungan di poli ini.');
+        // Validasi ownership: kunjungan harus milik dokter ini
+        if ($kunjungan->dokter_id !== $user->id) {
+            abort(403, 'Anda tidak memiliki akses ke kunjungan ini.');
         }
 
         $kunjungan->update(['status' => 'diperiksa']);

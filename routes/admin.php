@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\Route;
 // Main Dashboard Summary
 Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+// Laporan
+Route::get('/laporan', [\App\Http\Controllers\Admin\LaporanController::class, 'index'])->name('laporan.index');
+
+// Ambulans
+Route::get('/ambulans', [\App\Http\Controllers\Admin\AdminAmbulansController::class, 'index'])->name('ambulans.index');
+Route::post('/ambulans/{id}/status', [\App\Http\Controllers\Admin\AdminAmbulansController::class, 'updateStatus'])->name('ambulans.status');
+
 // User Management CRUD
 Route::prefix('users')->name('users.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'usersIndex'])->name('index');

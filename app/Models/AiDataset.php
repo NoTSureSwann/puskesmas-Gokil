@@ -23,6 +23,10 @@ class AiDataset extends Model
         'saran_tindakan',
         'is_printed',
         'dicetak_pada',
+        'model_version',
+        'nlp_confidence_score',
+        'is_synthetic',
+        'needs_annotation',
     ];
 
     protected $casts = [

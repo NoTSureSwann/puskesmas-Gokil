@@ -17,14 +17,14 @@ class TagihanController extends Controller
      */
     public function index(): View
     {
-        $pasien = Auth::user()->pasien;
+        $pasien = Auth::user()->profilPasien;
         if (!$pasien) {
             abort(403, 'Profil pasien tidak ditemukan. Silakan hubungi admin.');
         }
         $pasienId = $pasien->id;
         
         // Optimasi: O(1) Cache retrieval, mencegah O(N) re-query ke database setiap reload
-        $page = request()->query('page', 1);
+        $page = request()->input('page', 1);
         $cacheKey = "tagihan_pasien_{$pasienId}_page_{$page}";
         
         $tagihans = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(10), function() use ($pasienId) {
@@ -44,9 +44,9 @@ class TagihanController extends Controller
     /**
      * Tampilkan detail invoice dan metode pembayaran.
      */
-    public function show($id): View
+    public function show(int|string $id): View
     {
-        $pasien = Auth::user()->pasien;
+        $pasien = Auth::user()->profilPasien;
         if (!$pasien) {
             abort(403, 'Profil pasien tidak ditemukan. Silakan hubungi admin.');
         }
@@ -65,9 +65,9 @@ class TagihanController extends Controller
     /**
      * Simulasi pelunasan (Mock Payment Gateway).
      */
-    public function simulatePayment(Request $request, $id)
+    public function simulatePayment(Request $request, int|string $id)
     {
-        $pasien = Auth::user()->pasien;
+        $pasien = Auth::user()->profilPasien;
         if (!$pasien) {
             abort(403, 'Profil pasien tidak ditemukan. Silakan hubungi admin.');
         }

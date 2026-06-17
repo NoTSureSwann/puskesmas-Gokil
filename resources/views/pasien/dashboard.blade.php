@@ -39,7 +39,49 @@
             <h2 class="fw-bold mb-1 fs-3 fs-md-2">Selamat Datang, <br class="d-block d-sm-none">{{ $user->name }}</h2>
             <p class="text-muted mb-0 small">Kelola antrian kunjungan puskesmas dan lacak resep obat Anda.</p>
         </div>
-        <a href="{{ route('pasien.daftar') }}" class="btn btn-primary text-white w-100 w-md-auto"><i class="fa-solid fa-calendar-plus me-2 icon-bounce-hover"></i> Daftar Kunjungan Baru</a>
+        <div class="d-flex gap-2 w-100 w-md-auto">
+            <button type="button" class="btn btn-danger text-white pulse-animation" data-bs-toggle="modal" data-bs-target="#ambulansModal">
+                <i class="fa-solid fa-truck-medical me-2"></i> Darurat Ambulans
+            </button>
+            <a href="{{ route('pasien.daftar') }}" class="btn btn-primary text-white flex-grow-1"><i class="fa-solid fa-calendar-plus me-2 icon-bounce-hover"></i> Daftar Baru</a>
+        </div>
+    </div>
+
+    <!-- Modal Ambulans -->
+    <div class="modal fade" id="ambulansModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white border-0 pb-3 rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-truck-medical me-2"></i> Panggilan Ambulans Darurat</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('pasien.ambulans.call') }}" method="POST">
+                    @csrf
+                    <div class="modal-body p-4">
+                        <div class="alert alert-warning mb-4">
+                            <i class="fa-solid fa-triangle-exclamation me-2"></i> Gunakan layanan ini hanya dalam kondisi <strong>darurat medis</strong>. Petugas kami akan memprioritaskan panggilan ini.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Alamat Penjemputan</label>
+                            <textarea name="alamat_jemput" class="form-control bg-light" rows="3" required>{{ $pasien->alamat ? $pasien->alamat . ', ' . $pasien->kelurahan . ', ' . $pasien->kecamatan : '' }}</textarea>
+                            <div class="form-text">Ubah jika lokasi jemput berbeda dengan alamat terdaftar.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">No. Telepon Aktif</label>
+                            <input type="text" name="no_telepon" class="form-control bg-light" value="{{ $user->phone }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Keluhan Darurat (Opsional)</label>
+                            <textarea name="keluhan_darurat" class="form-control bg-light" rows="2" placeholder="Contoh: Sesak napas hebat, pendarahan, dll."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 p-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-phone-volume me-2"></i> Panggil Ambulans Sekarang</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Patient Info Card -->

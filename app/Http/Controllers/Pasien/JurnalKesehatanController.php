@@ -18,7 +18,7 @@ class JurnalKesehatanController extends Controller
      */
     public function download(string|int $id)
     {
-        $pasienId = Auth::user()->pasien->id;
+        $pasienId = Auth::user()->profilPasien->id;
 
         // Keamanan: Pastikan kunjungan benar-benar milik pasien ini
         $kunjungan = Kunjungan::query()

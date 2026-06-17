@@ -8,6 +8,7 @@ from stable_baselines3 import PPO
 from models.kbot_intelligence import KBotIntelligence
 from models.nlp_classifier import NLPClassifier
 from models.severity_scorer import SeverityScorer
+from models.symptom_extractor import SymptomExtractor
 from flask_cors import CORS
 import os
 import uuid
@@ -35,6 +36,7 @@ rl_agent = None  # To be implemented with PPO.load
 kbot_ai = KBotIntelligence()
 nlp_clf = NLPClassifier(model_path='ai_engine/saved_models/nlp_classifier.pkl')
 severity_scorer = SeverityScorer()
+symptom_extractor = SymptomExtractor()
 
 @app.route('/predict/surge', methods=['POST'])
 def predict_surge():
@@ -63,16 +65,51 @@ def predict_surge():
 
 @app.route('/predict/complaint', methods=['POST'])
 def predict_complaint():
-    """Classifies medical complaint text (Boilerplate)."""
+    """Classifies medical complaint text (NER & Triage)."""
     data = request.json
     text = data.get('text', '')
     
-    # Normally we would use dl_model here
-    # For now, we return a mock response
+    if not text:
+        return jsonify({'error': 'Text is empty'}), 400
+        
+    # 1. Out of Domain Check
+    is_ood = severity_scorer.is_out_of_domain(text)
+    if is_ood:
+        return jsonify({
+            'status': 'success',
+            'is_out_of_domain': True,
+            'is_emergency': False,
+            'message': 'Input tidak dikenali sebagai keluhan medis yang valid.'
+        }), 200
+        
+    # 2. Extract Symptoms (NER)
+    extracted_entities = symptom_extractor.extract(text)
+    
+    # 3. Predict Poli
+    poli_result = nlp_clf.predict_poli(text)
+    confidence = poli_result.get("confidence", 0.85)
+    
+    # Mock poli id mapping
+    poli_name_raw = poli_result.get("doctor", "Umum")
+    predicted_poli_id = 1
+    if "Gigi" in poli_name_raw: predicted_poli_id = 2
+    elif "Kebidanan" in poli_name_raw: predicted_poli_id = 3
+    elif "Saraf" in poli_name_raw: predicted_poli_id = 4
+    elif "Pencernaan" in poli_name_raw: predicted_poli_id = 5
+    elif "Gizi" in poli_name_raw: predicted_poli_id = 6
+    
+    # 4. Severity & Emergency Check
+    severity_result = severity_scorer.score(text, confidence)
+    
     return jsonify({
         'status': 'success',
-        'predicted_poli_id': 1, # Mock output
-        'confidence': 0.85
+        'is_out_of_domain': False,
+        'is_emergency': severity_result.get('is_emergency', False),
+        'extracted_entities': extracted_entities,
+        'predicted_poli_id': predicted_poli_id, 
+        'confidence': confidence,
+        'cdc_triage': severity_result.get('cdc_triage', 'GREEN TAG'),
+        'action': severity_result.get('action', '')
     }), 200
 
 @app.route('/optimize/queue', methods=['POST'])

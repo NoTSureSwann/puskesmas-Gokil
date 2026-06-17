@@ -11,6 +11,34 @@ class SeverityScorer:
             "demam tinggi", "nyeri hebat", "sakit banget", "muntah terus",
             "diare parah", "tidak bisa makan", "lemas sekali", "berdarah"
         ]
+        
+        # Keyword medis umum untuk ngecek domain
+        self.medical_keywords = [
+            "demam", "batuk", "nyeri", "sakit", "mual", "muntah", "pusing", 
+            "diare", "lemas", "dokter", "obat", "darah", "napas", "gatal", "hamil", "perut", "kepala"
+        ]
+
+    def is_out_of_domain(self, text: str) -> bool:
+        """Deteksi apakah teks di luar konteks medis atau kalimat tidak bermakna."""
+        t = text.lower().strip()
+        words = t.split()
+        
+        # Terlalu pendek
+        if len(words) < 2:
+            return True
+            
+        # Jika isinya hanya angka
+        if t.replace(' ', '').isdigit():
+            return True
+            
+        # Cek apakah ada minimal 1 kata berbau medis
+        has_medical_context = any(k in t for k in self.medical_keywords)
+        if not has_medical_context:
+            # Jika tidak ada kata medis, dan panjangnya kurang dari 4 kata, kemungkinan besar OOD
+            if len(words) < 4:
+                return True
+                
+        return False
 
     def score(self, text: str, nlp_confidence: float) -> dict:
         t = text.lower()
@@ -70,5 +98,6 @@ class SeverityScorer:
             "raw_score": round(raw_score, 2),
             "status": status,
             "cdc_triage": f"{cdc_triage} ({'Immediate/Darurat' if status == 'Kritis' else 'Urgent/Observasi' if status == 'Sedang' else 'Non-Urgent/Aman'})",
-            "action": action
+            "action": action,
+            "is_emergency": raw_score >= 7.0
         }

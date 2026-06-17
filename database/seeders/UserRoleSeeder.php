@@ -18,30 +18,63 @@ class UserRoleSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Seed Dokter
-        $dokterUser = User::updateOrCreate(
-            ['email' => 'dokter@puskesmas.go.id'],
-            [
-                'name' => 'dr. Budi Setiawan',
-                'password' => Hash::make('password123'),
-                'role' => 'dokter',
-                'phone' => '081222333444',
-                'status' => 'aktif',
-                'email_verified_at' => now(),
-            ]
-        );
+        // 1. Seed 14 Dokter (2 per Poli)
+        $polis = [
+            'Poli Umum' => ['Budi Setiawan', 'Sarah Ayu'],
+            'Poli Gigi' => ['Andi Wijaya', 'Sinta Dewi'],
+            'Poli Penyakit Dalam' => ['Hendra Gunawan', 'Maya Sari'],
+            'Poli Anak' => ['Rizky Pratama', 'Dian Kusuma'],
+            'Poli Kandungan (Obgyn)' => ['Farhan Hidayat', 'Lina Marlina'],
+            'Poli Bedah' => ['Satria Wiguna', 'Reza Pahlevi'],
+            'Poli Saraf' => ['Tari Lestari', 'Bima Sakti'],
+        ];
 
-        ProfilDokter::updateOrCreate(
-            ['user_id' => $dokterUser->id],
-            [
-                'nip' => '198503152010011002',
-                'sip' => 'SIP/2026/0012/100',
-                'spesialisasi' => 'Dokter Umum',
-                'poli' => 'Poli Umum',
-                'harga_konsultasi' => 50000.00,
-                'jam_kerja' => '08:00 - 15:00',
-            ]
-        );
+        $basePrices = [
+            'Poli Umum' => 150000,
+            'Poli Gigi' => 200000,
+            'Poli Penyakit Dalam' => 300000,
+            'Poli Anak' => 250000,
+            'Poli Kandungan (Obgyn)' => 350000,
+            'Poli Bedah' => 400000,
+            'Poli Saraf' => 320000,
+        ];
+
+        $dokterCounter = 1;
+        $nipBase = 198503152010011000;
+        foreach ($polis as $poliName => $dokters) {
+            foreach ($dokters as $index => $dokterName) {
+                $emailName = strtolower(str_replace(' ', '', $dokterName));
+                $dokterUser = User::updateOrCreate(
+                    ['email' => "dr.{$emailName}@puskesmas.go.id"],
+                    [
+                        'name' => "dr. {$dokterName}",
+                        'password' => Hash::make('password123'),
+                        'role' => 'dokter',
+                        'phone' => '0812' . str_pad((string)$dokterCounter, 8, '0', STR_PAD_LEFT),
+                        'status' => 'aktif',
+                        'email_verified_at' => now(),
+                    ]
+                );
+
+                $nip = (string)($nipBase + $dokterCounter);
+                $sip = 'SIP/2026/0012/' . str_pad((string)$dokterCounter, 3, '0', STR_PAD_LEFT);
+                $jamKerja = $index === 0 ? '08:00 - 15:00' : '15:00 - 21:00';
+                $hargaKonsultasi = $basePrices[$poliName] + ($index * 50000); // Dokter ke-2 lebih mahal 50k
+
+                ProfilDokter::updateOrCreate(
+                    ['user_id' => $dokterUser->id],
+                    [
+                        'nip' => $nip,
+                        'sip' => $sip,
+                        'spesialisasi' => "Spesialis {$poliName}", // Asumsi simplifikasi
+                        'poli' => $poliName,
+                        'harga_konsultasi' => $hargaKonsultasi,
+                        'jam_kerja' => $jamKerja,
+                    ]
+                );
+                $dokterCounter++;
+            }
+        }
 
         // 2. Seed Farmasi (Apoteker)
         $farmasiUser = User::updateOrCreate(

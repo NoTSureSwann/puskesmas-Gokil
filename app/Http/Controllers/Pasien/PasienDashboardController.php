@@ -97,7 +97,7 @@ class PasienDashboardController extends Controller
         $kunjungan = Kunjungan::create([
             'pasien_id' => $pasien->id,
             'poli_id' => $request->poli_id,
-            'dokter_id' => null, // Ditentukan oleh poli/pemeriksa nanti
+            'dokter_id' => $request->dokter_id, // Ditentukan oleh pilihan pasien
             'loket_user_id' => null, // Online self-registration
             'tanggal_kunjungan' => $request->tanggal_kunjungan,
             'keluhan' => $request->keluhan,

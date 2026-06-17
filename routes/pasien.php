@@ -36,3 +36,6 @@ Route::post('/notifikasi/read', [PasienDashboardController::class, 'markNotifica
 // Stunting Calculator
 Route::get('/stunting', [\App\Http\Controllers\Pasien\StuntingController::class, 'index'])->name('stunting');
 Route::post('/stunting/calculate', [\App\Http\Controllers\Pasien\StuntingController::class, 'calculate'])->name('stunting.calculate');
+
+// Ambulans
+Route::post('/ambulans/call', [\App\Http\Controllers\Pasien\AmbulansController::class, 'call'])->name('ambulans.call');

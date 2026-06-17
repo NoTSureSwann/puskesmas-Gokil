@@ -283,6 +283,13 @@
                                     </a>
                                 </li>
                                 @endif
+                                @if(Auth::user()->role === 'admin')
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('admin.ambulans.index') }}">
+                                        <i class="fa-solid fa-truck-medical me-2 text-danger"></i> Ambulans Darurat
+                                    </a>
+                                </li>
+                                @endif
                                 @if(Auth::user()->role === 'dokter')
                                 <li>
                                     <a class="dropdown-item py-2" href="{{ route('dokter.ml.analytics') }}">

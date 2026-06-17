@@ -101,4 +101,69 @@ class MlAnalyticController extends Controller
 
         return back()->with('status', 'Feedback RLHF berhasil disimpan. Model akan belajar dari koreksi Anda.');
     }
+
+    /**
+     * Tampilkan halaman A/B Testing Dashboard.
+     */
+    public function abTestingIndex(): View
+    {
+        return view('dokter.ab_testing');
+    }
+
+    /**
+     * Endpoint API untuk mengambil data statistik A/B Testing.
+     */
+    public function abTestingData(): JsonResponse
+    {
+        $v1Data = AiDataset::query()->where('model_version', '=', 'v1')->where('is_synthetic', '=', false);
+        $v2Data = AiDataset::query()->where('model_version', '=', 'v2')->where('is_synthetic', '=', false);
+
+        $v1Count = (clone $v1Data)->count();
+        $v2Count = (clone $v2Data)->count();
+
+        $v1AvgConf = (clone $v1Data)->avg('nlp_confidence_score') ?? 0;
+        $v2AvgConf = (clone $v2Data)->avg('nlp_confidence_score') ?? 0;
+
+        // Avg Reward Score from AiFeedback
+        $v1Reward = AiFeedback::query()->join('ai_datasets', 'ai_feedbacks.ai_dataset_id', '=', 'ai_datasets.id')
+            ->where('ai_datasets.model_version', '=', 'v1')
+            ->avg('ai_feedbacks.reward_score') ?? 0;
+
+        $v2Reward = AiFeedback::query()->join('ai_datasets', 'ai_feedbacks.ai_dataset_id', '=', 'ai_datasets.id')
+            ->where('ai_datasets.model_version', '=', 'v2')
+            ->avg('ai_feedbacks.reward_score') ?? 0;
+
+        // Daily trend (last 7 days)
+        $dates = collect();
+        $v1Trend = collect();
+        $v2Trend = collect();
+
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $dates->push($date);
+            
+            $v1Trend->push((clone $v1Data)->whereDate('created_at', $date)->count());
+            $v2Trend->push((clone $v2Data)->whereDate('created_at', $date)->count());
+        }
+
+        return response()->json([
+            'stats' => [
+                'v1' => [
+                    'count' => $v1Count,
+                    'avg_confidence' => $v1AvgConf,
+                    'avg_reward' => $v1Reward
+                ],
+                'v2' => [
+                    'count' => $v2Count,
+                    'avg_confidence' => $v2AvgConf,
+                    'avg_reward' => $v2Reward
+                ]
+            ],
+            'trends' => [
+                'labels' => $dates,
+                'v1' => $v1Trend,
+                'v2' => $v2Trend
+            ]
+        ]);
+    }
 }

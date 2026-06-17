@@ -26,56 +26,67 @@ class KbotController extends Controller
 
         $message = strtolower($request->message);
 
-        // Term Frequency (TF) & Keyword Extraction (Mocking Naive Bayes Dataset)
-        $dataset = [
-            'demam' => ['weight' => 0.8, 'poli' => 'Poli Umum', 'response' => 'Sepertinya Anda mengalami demam. Pastikan banyak minum air putih. Kbot menyarankan Poli Umum.'],
-            'panas' => ['weight' => 0.7, 'poli' => 'Poli Umum', 'response' => 'Suhu tubuh panas bisa jadi tanda infeksi. Kbot menyarankan Poli Umum.'],
-            'gigi' => ['weight' => 0.9, 'poli' => 'Poli Gigi', 'response' => 'Untuk keluhan sakit gigi atau gusi, Kbot merekomendasikan Anda mendaftar ke Poli Gigi.'],
-            'kandungan' => ['weight' => 0.9, 'poli' => 'Poli Kandungan', 'response' => 'Keluhan terkait kehamilan atau kandungan sangat tepat diperiksakan ke Poli Kandungan.'],
-            'hamil' => ['weight' => 0.9, 'poli' => 'Poli Kandungan', 'response' => 'Untuk pemeriksaan kehamilan, silakan kunjungi Poli Kandungan.'],
-            'anak' => ['weight' => 0.9, 'poli' => 'Poli Anak', 'response' => 'Keluhan pada anak akan ditangani oleh dokter spesialis anak di Poli Anak.'],
-            'batuk' => ['weight' => 0.6, 'poli' => 'Poli Umum', 'response' => 'Batuk yang mengganggu sebaiknya diperiksakan ke Poli Umum.'],
-            'pusing' => ['weight' => 0.5, 'poli' => 'Poli Umum', 'response' => 'Gejala pusing atau sakit kepala bisa diperiksakan ke Poli Umum.'],
-            'saraf' => ['weight' => 0.9, 'poli' => 'Poli Saraf', 'response' => 'Gejala neurologis akan diperiksa lebih lanjut di Poli Saraf.']
-        ];
+        // Call Python AI Engine
+        $complaintAnalysis = $this->aiEngine->predictComplaint($message);
 
-        // 1. Tokenization
-        $tokens = explode(' ', preg_replace('/[^a-z0-9 ]/', '', $message));
-        
-        // 2. Probability Calculation (Naive Bayes Concept)
-        $highestWeight = 0;
-        $predictedPoli = 'Poli Umum'; // Default Fallback
-        $patientResponse = 'Halo! Saya Kbot. Dari deskripsi Anda, keluhan tersebut dapat diperiksakan di Poli Umum.';
-        
-        $reasoningMetrics = [
-            'tokenized_words' => $tokens,
-            'matched_keywords' => []
-        ];
-
-        foreach ($tokens as $token) {
-            if (strlen($token) < 4) continue; // Abaikan kata hubung yang pendek
-            
-            if (isset($dataset[$token])) {
-                $reasoningMetrics['matched_keywords'][] = $token;
-                // Mengambil probabilitas tertinggi (Highest Probability)
-                if ($dataset[$token]['weight'] > $highestWeight) {
-                    $highestWeight = $dataset[$token]['weight'];
-                    $predictedPoli = $dataset[$token]['poli'];
-                    $patientResponse = $dataset[$token]['response'];
-                }
-            }
+        // Fallback jika AI mati atau error
+        if (!$complaintAnalysis || !isset($complaintAnalysis['predicted_poli_id'])) {
+            return response()->json([
+                'status' => 'error',
+                'parameter_1' => 'Maaf, sistem AI sedang offline atau tidak dapat memproses keluhan Anda saat ini. Silakan hubungi petugas secara manual.',
+                'parameter_2' => []
+            ]);
         }
+
+        // Ekstraksi data dari AI
+        $poliMapping = [
+            1 => 'Poli Umum',
+            2 => 'Poli Gigi',
+            3 => 'Poli KIA',
+            4 => 'Poli Gizi',
+            5 => 'Poli Anak',
+            6 => 'Poli Kandungan',
+            7 => 'Poli Saraf'
+        ];
+        
+        $predictedPoliId = $complaintAnalysis['predicted_poli_id'];
+        $predictedPoliName = $poliMapping[$predictedPoliId] ?? 'Poli Umum';
+        $confidenceScore = ($complaintAnalysis['confidence'] ?? 0.5) * 100;
+        
+        $extractedEntities = $complaintAnalysis['extracted_entities'] ?? [];
+        $symptomsStr = empty($extractedEntities) ? 'tidak ada spesifik' : implode(', ', $extractedEntities);
+        $triage = $complaintAnalysis['cdc_triage'] ?? 'Unknown';
+
+        $isEmergency = $complaintAnalysis['is_emergency'] ?? false;
+        $isOod = $complaintAnalysis['is_out_of_domain'] ?? false;
+
+        // Pembentukan Respons KBot
+        if ($isOod) {
+            $patientResponse = "Saya mendeteksi bahwa pesan Anda tidak berkaitan dengan keluhan medis atau layanan puskesmas. Harap masukkan keluhan kesehatan yang sebenarnya agar saya bisa membantu.";
+        } elseif ($isEmergency) {
+            $patientResponse = "🚨 **PERINGATAN DARURAT:** Sistem mendeteksi kondisi medis kritis berdasarkan gejala Anda ({$symptomsStr})! KBot menyarankan Anda untuk SEGERA menuju IGD (Instalasi Gawat Darurat) terdekat. Jangan menunggu!";
+        } else {
+            $patientResponse = "Halo! Saya KBot. Berdasarkan keluhan Anda, AI berhasil mengekstrak gejala klinis berikut: **{$symptomsStr}**.\n\n";
+            $patientResponse .= "KBot menyarankan Anda mendaftar ke **{$predictedPoliName}**.\n";
+            $patientResponse .= "Kategori Triage Anda adalah: **{$triage}**.";
+        }
+
+        $reasoningMetrics = [
+            'symptoms_extracted' => $extractedEntities,
+            'triage_level' => $triage,
+            'nlp_confidence_score' => $confidenceScore,
+            'is_emergency' => $isEmergency,
+            'is_out_of_domain' => $isOod,
+            'logical_analysis' => "Python NLP Model prediction: {$predictedPoliName} (Confidence: {$confidenceScore}%)"
+        ];
 
         // ==========================================
         // RAG (RETRIEVAL-AUGMENTED GENERATION) LOGIC
         // ==========================================
-        $ragContext = null;
-        $ragTitle = null;
-
-        if (count($reasoningMetrics['matched_keywords']) > 0) {
+        if (!$isOod && !$isEmergency && !empty($extractedEntities)) {
             $query = \App\Models\KnowledgeBase::query();
-            foreach ($reasoningMetrics['matched_keywords'] as $keyword) {
-                $query->orWhere('content', 'LIKE', '%' . $keyword . '%');
+            foreach ($extractedEntities as $entity) {
+                $query->orWhere('content', 'LIKE', '%' . $entity . '%');
             }
             
             $journalMatch = $query->first();
@@ -85,47 +96,47 @@ class KbotController extends Controller
                 $snippet = substr($journalMatch->content, 0, 300) . '...';
                 
                 $ragTitle = $journalMatch->title;
-                $ragContext = "Berdasarkan pedoman jurnal medis: *{$ragTitle}*.\nReferensi Klinis: \"{$snippet}\"\n\n";
+                $ragContext = "\n\n💡 *Berdasarkan pedoman jurnal medis: {$ragTitle}*.\nReferensi Klinis: \"{$snippet}\"";
                 
                 // Tambahkan konteks RAG ke dalam respons KBot
-                $patientResponse = $ragContext . $patientResponse;
-                
+                $patientResponse .= $ragContext;
                 $reasoningMetrics['rag_grounding_source'] = $ragTitle;
-                $reasoningMetrics['nlp_confidence_score'] = 99; // Skor maksimum karena didukung literatur!
+                
+                // Boost confidence if literature found (Optional logic)
+                $confidenceScore = min(100, $confidenceScore + 10);
+                $reasoningMetrics['nlp_confidence_score'] = $confidenceScore;
             }
         }
 
-        if (!isset($reasoningMetrics['nlp_confidence_score'])) {
-            $reasoningMetrics['nlp_confidence_score'] = $highestWeight > 0 ? ($highestWeight * 100) : 50; // percentage
-        }
-        $reasoningMetrics['logical_analysis'] = "Term-Frequency matched highest weight: " . $highestWeight . " -> " . $predictedPoli;
-
         // Logging untuk audit bias dan metrics
-        \Illuminate\Support\Facades\Log::info('kBot ML Analysis (Naive Bayes)', [
+        \Illuminate\Support\Facades\Log::info('kBot ML Analysis (Python NLP Engine)', [
             'user_message' => $request->message,
             'ai_reasoning_metrics' => $reasoningMetrics
         ]);
 
-        // ACTIVE LEARNING: Jika confidence < 65, simpan ke AiDataset untuk dianotasi oleh dokter
-        if ($reasoningMetrics['nlp_confidence_score'] < 65) {
+        // ACTIVE LEARNING: Jika confidence < 65 dan bukan out of domain, simpan ke AiDataset untuk dianotasi oleh dokter
+        if ($confidenceScore < 65 && !$isOod) {
+            $modelVersion = rand(0, 1) ? 'v1' : 'v2'; // Simulate A/B Testing metadata for KBot too
             \App\Models\AiDataset::create([
                 'kunjungan_id' => null, // Bukan dari pendaftaran formal
                 'keluhan' => $request->message,
-                'kemungkinan_penyakit' => ['[Uncertain] KBot Chat Log'],
-                'tingkat_urgensi' => 'Rendah',
-                'rekomendasi_poli_nama' => $predictedPoli,
-                'saran_tindakan' => 'Analisis chat gagal menemukan konteks yang kuat.',
+                'kemungkinan_penyakit' => $extractedEntities,
+                'tingkat_urgensi' => $triage,
+                'rekomendasi_poli_nama' => $predictedPoliId,
+                'saran_tindakan' => 'Analisis KBot memiliki confidence rendah.',
                 'needs_annotation' => true,
                 'is_synthetic' => false,
+                'model_version' => $modelVersion,
+                'nlp_confidence_score' => $confidenceScore / 100, // Normalized 0-1
             ]);
         }
 
         return response()->json([
             'status' => 'success',
-            'parameter_1' => $patientResponse . "\n\n(Dianalisis menggunakan Algoritma Text Classification).",
+            'parameter_1' => $patientResponse . "\n\n(Dianalisis menggunakan Python NLP Engine & NER).",
             'parameter_2' => [
                 'metrics' => $reasoningMetrics,
-                'algorithm' => 'Naive Bayes Tokenization'
+                'algorithm' => 'Python NER & Severity Scorer'
             ]
         ]);
     }

@@ -29,3 +29,5 @@ Route::get('/riwayat-resep', [ResepController::class, 'riwayatResep'])->name('re
 Route::get('/ml-analytics', [\App\Http\Controllers\Dokter\MlAnalyticController::class, 'index'])->name('ml.analytics');
 Route::get('/ml-analytics/realtime-data', [\App\Http\Controllers\Dokter\MlAnalyticController::class, 'realtimeData'])->name('ml.analytics.data');
 Route::post('/ml-analytics/feedback/{id}', [\App\Http\Controllers\Dokter\MlAnalyticController::class, 'submitFeedback'])->name('ml.analytics.feedback');
+Route::get('/ml-analytics/ab-testing', [\App\Http\Controllers\Dokter\MlAnalyticController::class, 'abTestingIndex'])->name('ml.analytics.ab_testing');
+Route::get('/ml-analytics/ab-testing-data', [\App\Http\Controllers\Dokter\MlAnalyticController::class, 'abTestingData'])->name('ml.analytics.ab_testing_data');
