@@ -13,6 +13,9 @@ Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 Route::get('/ambulans', [\App\Http\Controllers\Admin\AdminAmbulansController::class, 'index'])->name('ambulans.index');
 Route::post('/ambulans/{id}/status', [\App\Http\Controllers\Admin\AdminAmbulansController::class, 'updateStatus'])->name('ambulans.status');
 
+// Epidemiologi
+Route::get('/epidemiologi', [\App\Http\Controllers\Admin\EpidemiologiController::class, 'index'])->name('epidemiologi.index');
+
 // User Management CRUD
 Route::prefix('users')->name('users.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'usersIndex'])->name('index');

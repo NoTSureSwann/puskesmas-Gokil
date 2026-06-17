@@ -29,7 +29,86 @@ class ResepFarmasiController extends Controller
     public function showProcessForm(int $id): View
     {
         $resep = Resep::with(['kunjungan.pasien.user', 'detailResep.obat'])->findOrFail($id);
-        return view('farmasi.resep.process', compact('resep'));
+        $obats = \App\Models\Obat::query()->where('is_aktif', true)->orderBy('nama_obat', 'asc')->get();
+        return view('farmasi.resep.process', compact('resep', 'obats'));
+    }
+
+    /**
+     * Tambahkan obat baru ke resep (Farmasi).
+     */
+    public function addResepItem(Request $request, int $id): RedirectResponse
+    {
+        $resep = Resep::findOrFail($id);
+        
+        if ($resep->status === 'selesai') {
+            return back()->with('error', 'Resep sudah selesai diproses, tidak bisa diedit.');
+        }
+
+        $request->validate([
+            'obat_id' => 'required|exists:obat,id',
+            'jumlah' => 'required|integer|min:1',
+            'dosis' => 'required|string|max:50',
+            'aturan_pakai' => 'required|string|max:100',
+            'keterangan' => 'nullable|string|max:255',
+        ]);
+
+        $resep->detailResep()->create([
+            'obat_id' => $request->obat_id,
+            'jumlah' => $request->jumlah,
+            'dosis' => $request->dosis,
+            'aturan_pakai' => $request->aturan_pakai,
+            'keterangan' => $request->keterangan,
+        ]);
+
+        return back()->with('status', 'Obat berhasil ditambahkan ke resep.');
+    }
+
+    /**
+     * Update detail obat pada resep (Farmasi).
+     */
+    public function updateResepItem(Request $request, int $id, int $detailId): RedirectResponse
+    {
+        $resep = Resep::findOrFail($id);
+        
+        if ($resep->status === 'selesai') {
+            return back()->with('error', 'Resep sudah selesai diproses, tidak bisa diedit.');
+        }
+
+        $request->validate([
+            'obat_id' => 'required|exists:obat,id',
+            'jumlah' => 'required|integer|min:1',
+            'dosis' => 'required|string|max:50',
+            'aturan_pakai' => 'required|string|max:100',
+            'keterangan' => 'nullable|string|max:255',
+        ]);
+
+        $detail = $resep->detailResep()->findOrFail($detailId);
+        $detail->update([
+            'obat_id' => $request->obat_id,
+            'jumlah' => $request->jumlah,
+            'dosis' => $request->dosis,
+            'aturan_pakai' => $request->aturan_pakai,
+            'keterangan' => $request->keterangan,
+        ]);
+
+        return back()->with('status', 'Detail obat berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus obat dari resep (Farmasi).
+     */
+    public function deleteResepItem(int $id, int $detailId): RedirectResponse
+    {
+        $resep = Resep::findOrFail($id);
+        
+        if ($resep->status === 'selesai') {
+            return back()->with('error', 'Resep sudah selesai diproses, tidak bisa diedit.');
+        }
+
+        $detail = $resep->detailResep()->findOrFail($detailId);
+        $detail->delete();
+
+        return back()->with('status', 'Obat berhasil dihapus dari resep.');
     }
 
     /**

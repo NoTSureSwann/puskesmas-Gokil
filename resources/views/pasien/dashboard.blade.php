@@ -310,48 +310,5 @@
 @endsection
 
 @section('scripts')
-<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-<script>
-    // Inisialisasi Reverb (Pusher-compatible) untuk listening realtime update antrian/kunjungan
-    const reverbAppKey = "{{ env('REVERB_APP_KEY') }}";
-    const reverbHost = "{{ env('REVERB_HOST', 'localhost') }}";
-    const reverbPort = {{ env('REVERB_PORT', 8080) }};
-    const reverbScheme = "{{ env('REVERB_SCHEME', 'http') }}";
-    const activeKunjunganId = "{{ $antrianAktif->id ?? '' }}";
-    
-    if (reverbAppKey && activeKunjunganId) {
-        try {
-            const pusher = new Pusher(reverbAppKey, {
-                wsHost: reverbHost,
-                wsPort: reverbPort,
-                wssPort: reverbPort,
-                forceTLS: (reverbScheme === 'https'),
-                disableStats: true,
-                enabledTransports: ['ws', 'wss'],
-                cluster: 'mt1' // Wajib diisi meskipun Reverb tidak memakainya
-            });
-
-            const channel = pusher.subscribe('kunjungan-channel');
-            channel.bind('App\\Events\\KunjunganUpdated', function(data) {
-                console.log('Update Antrian Real-time:', data);
-                
-                // Jika ID kunjungan yang diupdate cocok dengan kunjungan aktif pasien
-                if (data.id == activeKunjunganId) {
-                    // Play sound alert
-                    try {
-                        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
-                        audio.play();
-                    } catch(e) { console.log(e); }
-                    
-                    // Reload dashboard secara otomatis untuk memperbarui status antrian
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1200);
-                }
-            });
-        } catch (e) {
-            console.error('Gagal memuat Pusher untuk pasien:', e);
-        }
-    }
-</script>
+    // Pusher dinonaktifkan sesuai instruksi.
 @endsection

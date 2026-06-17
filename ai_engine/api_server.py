@@ -144,6 +144,10 @@ def analyze_kbot():
         # Panggil modul intelijen kBot
         parameter_1, parameter_2 = kbot_ai.process_request(message, nlp_result=poli_result)
         
+        # Extract Symptoms (NER)
+        extracted_entities = symptom_extractor.extract(message)
+        parameter_2["extracted_entities"] = extracted_entities
+        
         # Insert nlp_classification into parameter_2
         parameter_2["nlp_classification"] = poli_result
         

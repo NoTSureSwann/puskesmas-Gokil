@@ -3,7 +3,7 @@
  * Modern UI Integration with Machine Learning Backend
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+function initKbot() {
     const toggleBtn = document.getElementById('toggle-kbot');
     const chatWindow = document.getElementById('kbot-chat-window');
     const closeBtn = document.getElementById('close-kbot');
@@ -11,14 +11,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendBtn = document.getElementById('send-kbot');
     const messagesContainer = document.getElementById('kbot-messages');
 
+    if (!toggleBtn) return; // Exit if kBot widget is not on the page
+
+    // Get CSRF Token for Laravel POST requests
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
     let isWindowOpen = false;
+    let chatHistory = [];
 
     // Chat UI logic
     function toggleChat() {
         isWindowOpen = !isWindowOpen;
         if (isWindowOpen) {
             chatWindow.classList.add('open');
-            inputField.focus();
+            if (inputField) inputField.focus();
             scrollToBottom();
         } else {
             chatWindow.classList.remove('open');
@@ -26,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     toggleBtn.addEventListener('click', toggleChat);
-    closeBtn.addEventListener('click', toggleChat);
+    if (closeBtn) closeBtn.addEventListener('click', toggleChat);
 
     function scrollToBottom() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -65,11 +72,22 @@ document.addEventListener('DOMContentLoaded', function() {
     function addDiagnosticCard(parameter_2, message_id, original_input) {
         if (!parameter_2 || !parameter_2.statistical_quartiles) return;
         
-        const qData = parameter_2.statistical_quartiles;
-        const nlpData = parameter_2.nlp_classification;
+        const metrics = parameter_2.metrics || {};
+        if (metrics.state && (metrics.state === 1 || metrics.state === 2)) {
+            return; // Do not show diagnostic card for sapaan or keluhan ambigu
+        }
         
-        const badgeClass = qData.Status === 'Kritis' ? 'kritis' : 
-                           qData.Status === 'Sedang' ? 'sedang' : '';
+        const qData = parameter_2.statistical_quartiles || {};
+        const nlpData = parameter_2.nlp_classification || {};
+        
+        const triase = metrics.triase_tag || qData.cdc_triage || 'Unknown';
+        const skor = metrics.skor || `${qData.raw_score}/10.0 (${qData.Status})`;
+        const aksi = metrics.rekomendasi_aksi || qData.action || '';
+        const poli = metrics.klasifikasi_poli || nlpData.poli_name || '';
+        const dokter = metrics.rekomendasi_dokter || nlpData.doctor || '';
+        
+        const badgeClass = triase.includes('RED') ? 'kritis' : 
+                           triase.includes('YELLOW') ? 'sedang' : 'aman';
 
         const div = document.createElement('div');
         div.className = 'diagnostic-card';
@@ -80,16 +98,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fa-solid fa-microscope"></i> Analisis AI kBot
             </div>
             <hr>
-            <div><strong>Triase CDC:</strong> <span class="diagnostic-badge ${badgeClass}">${qData.cdc_triage}</span></div>
-            <div><strong>Skor Keparahan:</strong> ${qData.raw_score}/10.0 (${qData.Status})</div>
-            <div><strong>Rekomendasi Aksi:</strong> ${qData.action}</div>
+            <div><strong>Triase CDC:</strong> <span class="diagnostic-badge ${badgeClass}">${triase}</span></div>
+            <div><strong>Skor Keparahan:</strong> ${skor}</div>
+            <div><strong>Rekomendasi Aksi:</strong> ${aksi}</div>
         `;
 
-        if (nlpData) {
+        if (poli) {
             html += `
             <hr>
-            <div><strong>Klasifikasi Poli:</strong> ${nlpData.poli_name} (Confidence: ${(nlpData.confidence * 100).toFixed(1)}%)</div>
-            <div><strong>Rekomendasi Dokter:</strong> ${nlpData.doctor}</div>
+            <div><strong>Klasifikasi Poli:</strong> ${poli}</div>
+            <div><strong>Rekomendasi Dokter:</strong> ${dokter}</div>
+            `;
+        }
+
+        if (metrics.tips_kesehatan || metrics.rekomendasi_tips_kesehatan) {
+            html += `
+            <hr>
+            <div><strong>Tips Kesehatan:</strong> ${metrics.tips_kesehatan || metrics.rekomendasi_tips_kesehatan}</div>
+            <div><strong>Makanan & Buah:</strong> ${metrics.makanan_buah || metrics.rekomendasi_makanan_buah}</div>
+            <div><strong>Pola Hidup Sehat:</strong> ${metrics.pola_hidup || metrics.rekomendasi_hidup_sehat}</div>
+            `;
+        }
+
+        // Add Booking Button if Poli is identified and Triage is not RED
+        if (poli && !triase.includes('RED')) {
+            html += `
+            <hr>
+            <button class="btn btn-sm btn-primary w-100 mt-2 kbot-book-btn" data-poli="${poli}" data-keluhan="${original_input}">
+                <i class="fa-solid fa-calendar-check"></i> Daftar ke ${poli} Sekarang
+            </button>
             `;
         }
 
@@ -103,6 +140,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
         div.innerHTML = html;
         messagesContainer.appendChild(div);
+
+        // Attach event listener for Booking Button
+        const bookBtn = div.querySelector('.kbot-book-btn');
+        if (bookBtn) {
+            bookBtn.addEventListener('click', async () => {
+                bookBtn.disabled = true;
+                bookBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+                
+                try {
+                    const res = await fetch('/api/kbot/book', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        body: JSON.stringify({
+                            poli_name: bookBtn.dataset.poli,
+                            keluhan: bookBtn.dataset.keluhan
+                        })
+                    });
+                    const resData = await res.json();
+                    
+                    if (resData.status === 'success') {
+                        bookBtn.classList.remove('btn-primary');
+                        bookBtn.classList.add('btn-success');
+                        bookBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + resData.message;
+                        
+                        // Optionally redirect after 2 seconds
+                        if (resData.redirect) {
+                            setTimeout(() => { window.location.href = resData.redirect; }, 2000);
+                        }
+                    } else {
+                        bookBtn.classList.remove('btn-primary');
+                        bookBtn.classList.add('btn-danger');
+                        bookBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + resData.message;
+                    }
+                } catch (e) {
+                    bookBtn.disabled = false;
+                    bookBtn.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Gagal, Coba Lagi';
+                }
+            });
+        }
         
         // Add event listeners for feedback buttons
         const btnUp = div.querySelector('.btn-up');
@@ -113,9 +192,12 @@ document.addEventListener('DOMContentLoaded', function() {
             btnOther.classList.remove(activeClass === 'active-up' ? 'active-down' : 'active-up');
             
             try {
-                await fetch('http://localhost:5000/kbot/feedback', {
+                await fetch('/api/kbot/feedback', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
                     body: JSON.stringify({
                         message_id: message_id,
                         rating: rating,
@@ -135,23 +217,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function fetchResponse(message) {
         try {
-            sendBtn.disabled = true;
-            inputField.disabled = true;
+            if (sendBtn) sendBtn.disabled = true;
+            if (inputField) inputField.disabled = true;
             
             addTypingIndicator();
             
-            const response = await fetch('http://localhost:5000/kbot/analyze', {
+            const response = await fetch('/api/kbot/analyze', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
                 },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ message: message, history: chatHistory })
             });
 
             const data = await response.json();
             removeTypingIndicator();
             
             if (data.status === 'success') {
+                chatHistory.push({ role: 'user', content: message });
+                chatHistory.push({ role: 'assistant', content: data.parameter_1 });
+                if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+
                 addMessage(data.parameter_1, false);
                 addDiagnosticCard(data.parameter_2, data.message_id, message);
             } else {
@@ -162,9 +249,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error(error);
             addMessage("Koneksi kBot terputus. Mohon coba lagi.");
         } finally {
-            sendBtn.disabled = false;
-            inputField.disabled = false;
-            inputField.focus();
+            if (sendBtn) sendBtn.disabled = false;
+            if (inputField) {
+                inputField.disabled = false;
+                inputField.focus();
+            }
         }
     }
 
@@ -182,4 +271,11 @@ document.addEventListener('DOMContentLoaded', function() {
             sendBtn.click();
         }
     });
-});
+}
+
+// Run on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initKbot);
+} else {
+    initKbot();
+}

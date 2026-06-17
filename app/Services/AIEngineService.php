@@ -100,7 +100,7 @@ class AIEngineService
      * @param string $message
      * @return array|null
      */
-    public function analyzeKbot($message)
+    public function analyzeKbot($message, $history = [])
     {
         // UU PDP: Anonymize data (hapus angka NIK atau deteksi nama simpel)
         $anonymizedMessage = preg_replace('/\b\d{16}\b/', '[NIK_REDACTED]', $message);
@@ -113,26 +113,77 @@ class AIEngineService
         }
 
         try {
+            $messages = [
+                [
+                    'role' => 'system',
+                    'content' => <<<EOT
+================================================================
+SYSTEM PROMPT — kBot (Asisten Kesehatan AI)
+================================================================
+1. IDENTITAS & PERAN
+Kamu adalah kBot, asisten kesehatan AI yang ramah, hangat, dan suportif. Tugasmu membantu user memahami kondisi kesehatan mereka secara awal, memberi triase ringan, dan mengarahkan ke tindakan/dokter yang tepat — BUKAN memberi diagnosis pasti. Gaya bahasa: santai tapi profesional, empatik, tidak menggurui.
+
+2. ATURAN UTAMA (NON-NEGOTIABLE)
+ATURAN #1 — Kartu Analisis (Triase CDC, Skor Keparahan, dll.) HANYA boleh ditampilkan jika user sudah menyebutkan keluhan/gejala kesehatan yang konkret.
+ATURAN #2 — Sapaan seperti "halo", "hai", "pagi", "test", "p" TANPA disertai keluhan kesehatan WAJIB dijawab dengan teks percakapan biasa (STATE 1).
+ATURAN #3 — Jangan pernah melompat ke kesimpulan triase dari informasi yang tidak ada. Jika ragu apakah informasi cukup, ANGGAP BELUM CUKUP dan tanyakan dulu (STATE 2).
+
+3. STATE MACHINE PERCAKAPAN
+Untuk setiap pesan user, tentukan dulu state-nya SEBELUM membalas:
+STATE 1 — SAPAAN / SMALL TALK (Ciri: tidak ada informasi gejala. Aksi: balas hangat, perkenalan singkat, tanya keluhan.)
+STATE 2 — KELUHAN AMBIGU / INFO KURANG (Ciri: ada kata sakit tapi tanpa detail. Aksi: ajukan maks 2 pertanyaan klarifikasi.)
+STATE 3 — KELUHAN JELAS / INFO CUKUP (Ciri: ada gejala + min 2 dari durasi/lokasi/intensitas. Aksi: lakukan triase lengkap.)
+STATE 4 — TANDA BAHAYA / DARURAT (Ciri: red-flag. Aksi: arahkan ke 119/IGD terdekat segera tanpa menunggu info lain.)
+
+4. KRITERIA TRIASE (CDC)
+GREEN TAG (Non-Urgent/Aman) : gejala ringan, stabil (skor 0.0-3.0)
+YELLOW TAG (Urgent) : gejala sedang, perlu periksa <24 jam (skor 3.1-6.9)
+RED TAG (Emergency) : gejala berat, penanganan segera (skor 7.0-10.0)
+
+5. FORMAT OUTPUT
+Anda WAJIB memberikan respons murni dalam JSON (tanpa tag markdown tambahan) dengan struktur ini:
+{
+  "reasoning_metrics": {
+    "state": 1, // isi dengan 1, 2, 3, atau 4
+    "triase_tag": "GREEN TAG", // (kosongkan jika state 1/2)
+    "skor": "2.5/10.0 (Ringan)", // (kosongkan jika state 1/2)
+    "rekomendasi_aksi": "...", // (kosongkan jika state 1/2)
+    "klasifikasi_poli": "Poli Umum", // (kosongkan jika state 1/2)
+    "rekomendasi_dokter": "...", // (kosongkan jika state 1/2)
+    "tips_kesehatan": "...",
+    "makanan_buah": "...",
+    "pola_hidup": "..."
+  },
+  "patient_response": "Halo! Saya kBot... (Jangan sertakan markdown kartu triase/analisis di sini. Frontend akan merender kartu analisis secara terpisah. Cukup sapaan, respons empatik, atau pertanyaan klarifikasi)"
+}
+
+6. PEMBATASAN & SAFETY GUARDRAILS
+- Jangan memberi diagnosis pasti/nama penyakit definitif.
+- Selalu sertakan disclaimer "bukan pengganti diagnosis dokter" pada patient_response jika di State 3 atau 4.
+EOT
+                ]
+            ];
+
+            foreach ($history as $chat) {
+                if (isset($chat['role']) && isset($chat['content'])) {
+                    $messages[] = [
+                        'role' => $chat['role'] === 'user' ? 'user' : 'assistant',
+                        'content' => $chat['content']
+                    ];
+                }
+            }
+
+            $messages[] = [
+                'role' => 'user',
+                'content' => $anonymizedMessage
+            ];
+
             $response = Http::withToken($groqApiKey)
                 ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model' => 'llama-3.1-8b-instant',
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => 'Anda adalah kBot Enterprise, asisten dokter cerdas. PERINGATAN KERAS: ANDA BUKAN PASIEN. Jangan pernah berbicara seolah-olah Anda yang sakit. Tugas Anda HANYA MENJAWAB pesan user/pasien.' .
-                                         'Anda harus merespons murni dalam format JSON. ' .
-                                         'Tugas 1: Lakukan "Chain of Thought" di balik layar untuk analisis logis & cek bias. ' .
-                                         'Tugas 2: Berikan respons AI asisten yang natural, ramah, dan solutif (menggunakan Markdown) kepada pasien. ' .
-                                         'Format JSON WAJIB: ' .
-                                         '{ "reasoning_metrics": { "logical_analysis": "...", "bias_check": "...", "nlp_confidence_score": 95, "robustness_check": "..." }, "patient_response": "Halo! Saya kBot, asisten medis Anda. Ada yang bisa saya bantu terkait gejala tersebut? ..." }'
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $anonymizedMessage
-                        ]
-                    ],
-                    'temperature' => 0.6,
-                    'max_tokens' => 1024,
+                    'model' => 'llama-3.3-70b-versatile',
+                    'messages' => $messages,
+                    'temperature' => 0.5,
+                    'max_tokens' => 700,
                     'response_format' => ['type' => 'json_object']
                 ]);
 
@@ -156,6 +207,117 @@ class AIEngineService
             Log::error('AI Engine Error (analyzeKbot Groq): ' . $response->body());
         } catch (\Exception $e) {
             Log::error('AI Engine Exception (analyzeKbot Groq): ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Memanggil Flask AI Engine /kbot/analyze untuk analisis terpadu
+     * 
+     * @param string $message
+     * @return array|null
+     */
+    public function analyzeKbotFlask(string $message): ?array
+    {
+        try {
+            $response = Http::post("{$this->baseUrl}/kbot/analyze", [
+                'message' => $message,
+            ]);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+            
+            Log::error('AI Engine Error (analyzeKbotFlask): ' . $response->body());
+        } catch (\Exception $e) {
+            Log::error('AI Engine Exception (analyzeKbotFlask): ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Mengirimkan rating feedback kBot ke Flask AI Engine
+     * 
+     * @param string|null $messageId
+     * @param int $rating
+     * @param string $originalInput
+     * @return array|null
+     */
+    public function feedbackKbotFlask(?string $messageId, int $rating, string $originalInput): ?array
+    {
+        try {
+            $response = Http::post("{$this->baseUrl}/kbot/feedback", [
+                'message_id' => $messageId,
+                'rating' => $rating,
+                'original_input' => $originalInput
+            ]);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+            
+            Log::error('AI Engine Error (feedbackKbotFlask): ' . $response->body());
+        } catch (\Exception $e) {
+            Log::error('AI Engine Exception (feedbackKbotFlask): ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Merangkum riwayat pasien menggunakan Groq API.
+     * 
+     * @param \App\Models\ProfilPasien $pasien
+     * @param \Illuminate\Database\Eloquent\Collection $riwayats
+     * @return string|null
+     */
+    public function summarizePatientHistory($pasien, $riwayats)
+    {
+        $groqApiKey = env('GROQ_API_KEY');
+        if (!$groqApiKey || $riwayats->isEmpty()) {
+            return null;
+        }
+
+        // Susun data riwayat menjadi format teks
+        $historyText = "Data Pasien: Usia " . ($pasien->tanggal_lahir ? \Carbon\Carbon::parse($pasien->tanggal_lahir)->age : 'Unknown') . " tahun, Gol Darah: " . ($pasien->golongan_darah ?? '-') . ".\n\nRiwayat Kunjungan:\n";
+        
+        foreach ($riwayats->take(5) as $r) { // Ambil 5 terakhir agar tidak terlalu panjang
+            $historyText .= "- Tanggal: " . \Carbon\Carbon::parse($r->tanggal_kunjungan)->format('d/m/Y') . "\n";
+            $historyText .= "  Poli: " . ($r->poli->nama ?? 'Umum') . "\n";
+            $historyText .= "  Keluhan: " . ($r->keluhan ?? '-') . "\n";
+            $historyText .= "  Diagnosis: " . ($r->diagnosis ?? '-') . "\n";
+            if ($r->resep && $r->resep->detailResep->count() > 0) {
+                $obat = $r->resep->detailResep->map(fn($d) => $d->obat->nama_obat ?? '')->filter()->implode(', ');
+                $historyText .= "  Obat Diberikan: " . $obat . "\n";
+            }
+        }
+
+        try {
+            $response = Http::withToken($groqApiKey)
+                ->post('https://api.groq.com/openai/v1/chat/completions', [
+                    'model' => 'llama-3.3-70b-versatile',
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'Anda adalah asisten medis profesional. Tugas Anda adalah memberikan SATU PARAGRAF ringkas (maksimal 4 kalimat) yang merangkum riwayat pasien di bawah ini untuk dibaca dengan cepat oleh dokter sebelum pemeriksaan. Fokus pada keluhan berulang, diagnosis utama, dan pola obat.'
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $historyText
+                        ]
+                    ],
+                    'temperature' => 0.4,
+                    'max_tokens' => 300,
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['choices'][0]['message']['content'] ?? null;
+            }
+        } catch (\Exception $e) {
+            Log::error('AI Engine Exception (summarizePatientHistory): ' . $e->getMessage());
         }
 
         return null;

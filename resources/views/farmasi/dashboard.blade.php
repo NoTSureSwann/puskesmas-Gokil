@@ -69,8 +69,17 @@
             <h2 class="fw-bold mb-1">Dashboard Farmasi & Apotek</h2>
             <p class="text-muted mb-0">Kelola antrian resep obat elektronik secara real-time.</p>
         </div>
-        <div class="small text-muted bg-white p-2 border rounded shadow-sm">
-            <i class="fa-solid fa-circle text-success me-1"></i> Pusher: <strong id="pusher-status">Connecting...</strong>
+    </div>
+
+    <!-- Farmasi Sub-Navigation -->
+    <div class="card card-premium shadow-sm mb-4 p-3">
+        <div class="nav nav-pills card-header-pills flex-column flex-md-row gap-2">
+            <a class="nav-link active bg-primary text-white fw-semibold" href="{{ route('farmasi.dashboard') }}">
+                <i class="fa-solid fa-gauge me-1"></i> Dashboard Antrean Resep
+            </a>
+            <a class="nav-link text-dark fw-semibold" href="{{ route('farmasi.obat.index') }}">
+                <i class="fa-solid fa-pills me-1"></i> Manajemen Obat
+            </a>
         </div>
     </div>
 
@@ -101,6 +110,32 @@
             </div>
         </div>
     </div>
+
+    <!-- Smart Pharmacy Alerts -->
+    @if(isset($aiAlert) || (isset($stokRendah) && $stokRendah->isNotEmpty()))
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-light rounded-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-robot text-primary me-2"></i> Smart Pharmacy Alerts</h5>
+                    
+                    @if(isset($aiAlert))
+                        <div class="alert alert-warning mb-3 rounded-3 border-warning border-start border-4">
+                            <i class="fa-solid fa-triangle-exclamation me-2"></i> {!! $aiAlert !!}
+                        </div>
+                    @endif
+
+                    @if(isset($stokRendah) && $stokRendah->isNotEmpty())
+                        <div class="alert alert-danger mb-0 rounded-3 border-danger border-start border-4">
+                            <i class="fa-solid fa-pills me-2"></i> <strong>Peringatan Stok Rendah:</strong> 
+                            {{ $stokRendah->map(fn($o) => $o->nama_obat . ' (Sisa: ' . $o->stok . ' ' . $o->satuan . ')')->implode(', ') }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Kanban Board Grid -->
     <div class="kanban-board flex-column flex-lg-row">
@@ -195,51 +230,6 @@
 @endsection
 
 @section('scripts')
-<!-- Include Pusher and Echo if needed, else fallback -->
-<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-<script>
-    // Inisialisasi Pusher untuk listening realtime resep baru
-    const pusherAppKey = "{{ env('PUSHER_APP_KEY') }}";
-    const pusherCluster = "{{ env('PUSHER_APP_CLUSTER', 'ap1') }}";
-    
-    if (pusherAppKey) {
-        try {
-            const pusher = new Pusher(pusherAppKey, {
-                cluster: pusherCluster,
-                forceTLS: true
-            });
-
-            const statusEl = document.getElementById('pusher-status');
-            pusher.connection.bind('state_change', function(states) {
-                statusEl.innerText = states.current.toUpperCase();
-                if (states.current === 'connected') {
-                    statusEl.className = "text-success";
-                } else if (states.current === 'unavailable' || states.current === 'failed') {
-                    statusEl.className = "text-danger";
-                }
-            });
-
-            const channel = pusher.subscribe('farmasi-dashboard');
-            channel.bind('App\\Events\\ResepBaru', function(data) {
-                console.log('Resep Baru Real-time:', data);
-                
-                // Play sound alert
-                try {
-                    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
-                    audio.play();
-                } catch(e) { console.log(e); }
-                
-                // Reload dashboard secara otomatis untuk memperbarui kolom
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            });
-        } catch (e) {
-            console.error('Gagal memuat Pusher:', e);
-            document.getElementById('pusher-status').innerText = "FAILED";
-        }
-    } else {
-        document.getElementById('pusher-status').innerText = "LOG (POLLING)";
-    }
-</script>
+    // Pusher telah dinonaktifkan atas permintaan user. 
+    // Halaman Farmasi sekarang bisa beroperasi tanpa error JS akibat Pusher.
 @endsection

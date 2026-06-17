@@ -78,7 +78,7 @@ class UserRoleSeeder extends Seeder
 
         // 2. Seed Farmasi (Apoteker)
         $farmasiUser = User::updateOrCreate(
-            ['email' => 'farmasi@puskesmas.go.id'],
+            ['email' => 'sitiaminah@puskesmas.go.id'],
             [
                 'name' => 'Siti Aminah, S.Farm',
                 'password' => Hash::make('password123'),

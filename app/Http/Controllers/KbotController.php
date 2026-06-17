@@ -22,15 +22,16 @@ class KbotController extends Controller
     {
         $request->validate([
             'message' => 'required|string',
+            'history' => 'nullable|array',
         ]);
 
         $message = strtolower($request->message);
 
-        // Call Python AI Engine
-        $complaintAnalysis = $this->aiEngine->predictComplaint($message);
+        // Call Python AI Engine via Flask Proxy
+        $complaintAnalysis = $this->aiEngine->analyzeKbotFlask($request->message);
 
         // Fallback jika AI mati atau error
-        if (!$complaintAnalysis || !isset($complaintAnalysis['predicted_poli_id'])) {
+        if (!$complaintAnalysis || !isset($complaintAnalysis['status']) || $complaintAnalysis['status'] !== 'success') {
             return response()->json([
                 'status' => 'error',
                 'parameter_1' => 'Maaf, sistem AI sedang offline atau tidak dapat memproses keluhan Anda saat ini. Silakan hubungi petugas secara manual.',
@@ -38,52 +39,34 @@ class KbotController extends Controller
             ]);
         }
 
-        // Ekstraksi data dari AI
-        $poliMapping = [
-            1 => 'Poli Umum',
-            2 => 'Poli Gigi',
-            3 => 'Poli KIA',
-            4 => 'Poli Gizi',
-            5 => 'Poli Anak',
-            6 => 'Poli Kandungan',
-            7 => 'Poli Saraf'
-        ];
-        
-        $predictedPoliId = $complaintAnalysis['predicted_poli_id'];
-        $predictedPoliName = $poliMapping[$predictedPoliId] ?? 'Poli Umum';
-        $confidenceScore = ($complaintAnalysis['confidence'] ?? 0.5) * 100;
-        
-        $extractedEntities = $complaintAnalysis['extracted_entities'] ?? [];
-        $symptomsStr = empty($extractedEntities) ? 'tidak ada spesifik' : implode(', ', $extractedEntities);
-        $triage = $complaintAnalysis['cdc_triage'] ?? 'Unknown';
+        $parameter_1 = $complaintAnalysis['parameter_1'];
+        $parameter_2 = $complaintAnalysis['parameter_2'];
+        $messageId = $complaintAnalysis['message_id'] ?? null;
 
-        $isEmergency = $complaintAnalysis['is_emergency'] ?? false;
-        $isOod = $complaintAnalysis['is_out_of_domain'] ?? false;
-
-        // Pembentukan Respons KBot
-        if ($isOod) {
-            $patientResponse = "Saya mendeteksi bahwa pesan Anda tidak berkaitan dengan keluhan medis atau layanan puskesmas. Harap masukkan keluhan kesehatan yang sebenarnya agar saya bisa membantu.";
-        } elseif ($isEmergency) {
-            $patientResponse = "🚨 **PERINGATAN DARURAT:** Sistem mendeteksi kondisi medis kritis berdasarkan gejala Anda ({$symptomsStr})! KBot menyarankan Anda untuk SEGERA menuju IGD (Instalasi Gawat Darurat) terdekat. Jangan menunggu!";
-        } else {
-            $patientResponse = "Halo! Saya KBot. Berdasarkan keluhan Anda, AI berhasil mengekstrak gejala klinis berikut: **{$symptomsStr}**.\n\n";
-            $patientResponse .= "KBot menyarankan Anda mendaftar ke **{$predictedPoliName}**.\n";
-            $patientResponse .= "Kategori Triage Anda adalah: **{$triage}**.";
+        // Jika ada GROQ_API_KEY, gunakan Groq API untuk memperkaya / menggantikan parameter_1 dengan respons LLM yang lebih natural
+        if (env('GROQ_API_KEY')) {
+            $history = $request->input('history', []);
+            $groqResult = $this->aiEngine->analyzeKbot($request->message, $history);
+            if ($groqResult && isset($groqResult['status']) && $groqResult['status'] === 'success') {
+                $parameter_1 = $groqResult['parameter_1'];
+                if (isset($groqResult['parameter_2']['metrics'])) {
+                    $parameter_2['metrics'] = array_merge($parameter_2['metrics'] ?? [], $groqResult['parameter_2']['metrics']);
+                }
+            }
         }
 
-        $reasoningMetrics = [
-            'symptoms_extracted' => $extractedEntities,
-            'triage_level' => $triage,
-            'nlp_confidence_score' => $confidenceScore,
-            'is_emergency' => $isEmergency,
-            'is_out_of_domain' => $isOod,
-            'logical_analysis' => "Python NLP Model prediction: {$predictedPoliName} (Confidence: {$confidenceScore}%)"
-        ];
+        $nlpClassification = $parameter_2['nlp_classification'] ?? [];
+        $confidenceScore = ($nlpClassification['confidence'] ?? 0.5) * 100;
+        $isOod = $nlpClassification['is_out_of_domain'] ?? false;
+        $extractedEntities = $parameter_2['extracted_entities'] ?? [];
+        
+        $triage = $parameter_2['statistical_quartiles']['cdc_triage'] ?? 'Unknown';
+        $predictedPoliId = $nlpClassification['poli_id'] ?? 1;
 
         // ==========================================
         // RAG (RETRIEVAL-AUGMENTED GENERATION) LOGIC
         // ==========================================
-        if (!$isOod && !$isEmergency && !empty($extractedEntities)) {
+        if (!$isOod && !empty($extractedEntities)) {
             $query = \App\Models\KnowledgeBase::query();
             foreach ($extractedEntities as $entity) {
                 $query->orWhere('content', 'LIKE', '%' . $entity . '%');
@@ -99,19 +82,25 @@ class KbotController extends Controller
                 $ragContext = "\n\n💡 *Berdasarkan pedoman jurnal medis: {$ragTitle}*.\nReferensi Klinis: \"{$snippet}\"";
                 
                 // Tambahkan konteks RAG ke dalam respons KBot
-                $patientResponse .= $ragContext;
-                $reasoningMetrics['rag_grounding_source'] = $ragTitle;
+                $parameter_1 .= $ragContext;
+                if (isset($parameter_2['metrics'])) {
+                    $parameter_2['metrics']['rag_grounding_source'] = $ragTitle;
+                } else {
+                    $parameter_2['metrics'] = ['rag_grounding_source' => $ragTitle];
+                }
                 
                 // Boost confidence if literature found (Optional logic)
                 $confidenceScore = min(100, $confidenceScore + 10);
-                $reasoningMetrics['nlp_confidence_score'] = $confidenceScore;
+                if (isset($parameter_2['nlp_classification'])) {
+                    $parameter_2['nlp_classification']['confidence'] = $confidenceScore / 100;
+                }
             }
         }
 
         // Logging untuk audit bias dan metrics
-        \Illuminate\Support\Facades\Log::info('kBot ML Analysis (Python NLP Engine)', [
+        \Illuminate\Support\Facades\Log::info('kBot ML Analysis (Python NLP Engine Proxy)', [
             'user_message' => $request->message,
-            'ai_reasoning_metrics' => $reasoningMetrics
+            'ai_reasoning_metrics' => $parameter_2
         ]);
 
         // ACTIVE LEARNING: Jika confidence < 65 dan bukan out of domain, simpan ke AiDataset untuk dianotasi oleh dokter
@@ -133,11 +122,119 @@ class KbotController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'parameter_1' => $patientResponse . "\n\n(Dianalisis menggunakan Python NLP Engine & NER).",
-            'parameter_2' => [
-                'metrics' => $reasoningMetrics,
-                'algorithm' => 'Python NER & Severity Scorer'
-            ]
+            'message_id' => $messageId,
+            'parameter_1' => $parameter_1,
+            'parameter_2' => $parameter_2
+        ]);
+    }
+
+    /**
+     * Endpoint untuk mem-proxy feedback dari kbot.js ke Flask API
+     */
+    public function feedback(Request $request)
+    {
+        $request->validate([
+            'message_id' => 'nullable|string',
+            'rating' => 'required|integer|in:0,1',
+            'original_input' => 'required|string',
+        ]);
+
+        $feedbackResponse = $this->aiEngine->feedbackKbotFlask(
+            $request->message_id,
+            (int)$request->rating,
+            $request->original_input
+        );
+
+        if (!$feedbackResponse || !isset($feedbackResponse['status']) || $feedbackResponse['status'] !== 'success') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengirimkan feedback ke server AI.'
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Feedback berhasil disimpan.'
+        ]);
+    }
+
+    /**
+     * Booking antrean langsung dari kBot
+     */
+    public function bookAppointment(Request $request)
+    {
+        $request->validate([
+            'poli_name' => 'required|string',
+            'keluhan' => 'nullable|string'
+        ]);
+
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user || $user->role !== 'pasien' || !$user->profilPasien) {
+            return response()->json(['status' => 'error', 'message' => 'Anda harus login sebagai pasien untuk menggunakan fitur ini.'], 401);
+        }
+
+        $poliName = trim(str_replace('Poli', '', $request->poli_name));
+        $poli = \App\Models\Poli::query()->where('nama_poli', 'LIKE', '%' . $poliName . '%')->first();
+        if (!$poli) {
+            $poli = \App\Models\Poli::query()->where('is_aktif', true)->first(); // Fallback to Poli Umum
+        }
+
+        // Get Doctor for this poli
+        $dokter = \App\Models\User::query()->whereHas('profilDokter', function($q) use ($poli) {
+            $q->where('spesialisasi', 'LIKE', '%' . str_replace('Poli', '', $poli->nama_poli) . '%');
+        })->first();
+        
+        if (!$dokter) {
+            $dokter = \App\Models\User::query()->where('role', 'dokter')->first(); // Fallback
+        }
+
+        $today = \Carbon\Carbon::today();
+
+        // Cek jika sudah terdaftar di poli yang sama pada hari yang sama
+        $exist = \App\Models\Kunjungan::query()->where('pasien_id', $user->profilPasien->id)
+            ->where('poli_id', $poli->id)
+            ->whereDate('tanggal_kunjungan', $today)
+            ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa', 'resep'])
+            ->first();
+
+        if ($exist) {
+            return response()->json([
+                'status' => 'error', 
+                'message' => 'Anda sudah terdaftar di ' . $poli->nama_poli . ' hari ini. No Antrean: ' . $exist->no_antrian
+            ], 400);
+        }
+
+        $noAntrian = \App\Models\Kunjungan::query()->whereDate('tanggal_kunjungan', $today)
+            ->where('dokter_id', $dokter->id)
+            ->max('no_antrian');
+        $noAntrian = $noAntrian ? $noAntrian + 1 : 1;
+
+        $kunjungan = \App\Models\Kunjungan::create([
+            'pasien_id' => $user->profilPasien->id,
+            'dokter_id' => $dokter->id,
+            'poli_id' => $poli->id,
+            'tanggal_kunjungan' => $today,
+            'keluhan' => $request->keluhan ?? 'Pendaftaran via KBot',
+            'no_antrian' => $noAntrian,
+            'status' => 'menunggu',
+            'jenis_kunjungan' => 'baru',
+            'metode_kunjungan' => 'tatap_muka',
+            'no_kunjungan' => 'K-' . date('Ymd') . '-' . str_pad((string)$noAntrian, 3, '0', STR_PAD_LEFT),
+            'jam_daftar' => now()
+        ]);
+
+        // Integrate WhatsAppService here
+        if (class_exists(\App\Services\WhatsAppService::class)) {
+            \App\Services\WhatsAppService::send(
+                $user->phone ?? '08000000', 
+                "Halo {$user->name}, pendaftaran antrean Anda di {$poli->nama_poli} berhasil. No Antrean: {$noAntrian}. Tunjukkan pesan ini ke petugas."
+            );
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Pendaftaran berhasil! No Antrean Anda: ' . $noAntrian,
+            'redirect' => route('pasien.kunjungan', $kunjungan->id)
         ]);
     }
 }

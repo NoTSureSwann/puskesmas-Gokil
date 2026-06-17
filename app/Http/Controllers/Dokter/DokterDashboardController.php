@@ -142,7 +142,13 @@ class DokterDashboardController extends Controller
             ->latest()
             ->get();
 
-        return view('dokter.pasien.riwayat', compact('pasien', 'riwayats'));
+        $aiSummary = null;
+        if ($riwayats->isNotEmpty() && env('GROQ_API_KEY')) {
+            $aiEngine = app(\App\Services\AIEngineService::class);
+            $aiSummary = $aiEngine->summarizePatientHistory($pasien, $riwayats);
+        }
+
+        return view('dokter.pasien.riwayat', compact('pasien', 'riwayats', 'aiSummary'));
     }
 
     /**

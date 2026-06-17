@@ -136,11 +136,11 @@
                 Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
             </div>
             <div x-show="activeRole === 'dokter'" style="display: none;">
-                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('dokter@puskesmas.go.id');">dokter@puskesmas.go.id</code> <br> 
+                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('dr.budisetiawan@puskesmas.go.id');">dr.budisetiawan@puskesmas.go.id</code> <br> 
                 Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
             </div>
             <div x-show="activeRole === 'farmasi'" style="display: none;">
-                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('farmasi@puskesmas.go.id');">farmasi@puskesmas.go.id</code> <br> 
+                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('sitiaminah@puskesmas.go.id');">sitiaminah@puskesmas.go.id</code> <br> 
                 Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
             </div>
             <div x-show="activeRole === 'admin'" style="display: none;">

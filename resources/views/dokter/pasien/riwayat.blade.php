@@ -32,6 +32,16 @@
         </div>
     </div>
 
+    <!-- AI Patient Summary -->
+    @if(isset($aiSummary))
+    <div class="row g-3 p-3 bg-primary-subtle border-primary border border-2 rounded-3 mb-4">
+        <div class="col-12">
+            <h5 class="fw-bold text-primary mb-2"><i class="fa-solid fa-robot me-2"></i> KBot AI Patient Summary</h5>
+            <p class="mb-0 text-dark" style="font-size: 0.95rem;">{{ $aiSummary }}</p>
+        </div>
+    </div>
+    @endif
+
     <!-- Timeline Visits -->
     <h5 class="fw-bold mb-4"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Daftar Kunjungan Selesai</h5>
     

@@ -111,6 +111,14 @@ class PasienDashboardController extends Controller
         // Kirim Notifikasi & Email
         Auth::user()->notify(new AntrianDigitalNotification($kunjungan));
 
+        // WhatsApp Notification
+        if (class_exists(\App\Services\WhatsAppService::class)) {
+            \App\Services\WhatsAppService::send(
+                Auth::user()->phone ?? '08000000', 
+                "Halo " . Auth::user()->name . ", pendaftaran antrean Anda di Poli pada tanggal " . $kunjungan->tanggal_kunjungan . " berhasil. No Antrean: " . $kunjungan->no_antrian . "."
+            );
+        }
+
         // Simpan ke ai_datasets jika analisis AI telah dijalankan
         if ($request->input('ai_run') === '1') {
             $kemungkinanPenyakit = json_decode($request->input('ai_kemungkinan_penyakit'), true) ?? [];

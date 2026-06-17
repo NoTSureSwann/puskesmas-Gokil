@@ -50,9 +50,30 @@ class FarmasiDashboardController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
+        // 4. Smart Pharmacy: Peringatan Stok & Tren AI
+        $stokRendah = \App\Models\Obat::stokRendah()->get();
+        $aiAlert = null;
+        
+        $datasets = \App\Models\AiDataset::where('created_at', '>=', Carbon::today()->subDays(7))->get();
+        if ($datasets->isNotEmpty()) {
+            $diseaseCounts = [];
+            foreach ($datasets as $data) {
+                $penyakits = $data->kemungkinan_penyakit ?? [];
+                foreach ($penyakits as $penyakit) {
+                    $diseaseCounts[$penyakit] = ($diseaseCounts[$penyakit] ?? 0) + 1;
+                }
+            }
+            arsort($diseaseCounts);
+            $topDisease = array_key_first($diseaseCounts);
+            
+            if ($topDisease && $diseaseCounts[$topDisease] >= 3) {
+                $aiAlert = "Tren penyakit <strong>{$topDisease}</strong> meningkat dalam 7 hari terakhir ({$diseaseCounts[$topDisease]} kasus). Pastikan stok obat terkait aman.";
+            }
+        }
+
         return view('farmasi.dashboard', compact(
             'totalReseps', 'menungguCount', 'diprosesCount', 'selesaiCount',
-            'resepsMenunggu', 'resepsDiproses', 'resepsSelesai'
+            'resepsMenunggu', 'resepsDiproses', 'resepsSelesai', 'stokRendah', 'aiAlert'
         ));
     }
 }

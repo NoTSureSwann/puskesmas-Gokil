@@ -203,5 +203,5 @@
 @endsection
 
 @section('scripts')
-<script src="{{ asset('js/kbot.js') }}"></script>
+<script src="{{ asset('js/kbot.js') }}?v={{ time() }}"></script>
 @endsection

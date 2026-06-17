@@ -170,7 +170,7 @@
         </div>
     </div>
 
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+
     <script>
         // --- 1. Konfigurasi Jam & Tanggal ---
         function updateClock() {
@@ -219,71 +219,7 @@
             }, 1000);
         }
 
-        // --- 4. Integrasi Pusher/Reverb Real-time ---
-        const reverbAppKey = "{{ env('REVERB_APP_KEY') }}";
-        const reverbHost = "{{ env('REVERB_HOST', 'localhost') }}";
-        const reverbPort = {{ env('REVERB_PORT', 8080) }};
-        const reverbScheme = "{{ env('REVERB_SCHEME', 'http') }}";
-        
-        if (reverbAppKey) {
-            const pusher = new Pusher(reverbAppKey, {
-                wsHost: reverbHost,
-                wsPort: reverbPort,
-                wssPort: reverbPort,
-                forceTLS: (reverbScheme === 'https'),
-                disableStats: true,
-                enabledTransports: ['ws', 'wss'],
-                cluster: 'mt1'
-            });
-
-            const channel = pusher.subscribe('kunjungan-channel');
-            channel.bind('App\\Events\\KunjunganUpdated', function(data) {
-                if (data.status === 'dipanggil') {
-                    // Ekstrak data
-                    const rawNoAntrian = data.no_antrian;
-                    const paddedNoAntrian = rawNoAntrian.toString().padStart(3, '0');
-                    const poliNama = data.poli_nama || 'Poli Tujuan';
-
-                    // 1. Geser UI (Simulasi pindah data dari Main ke History)
-                    const currentNoStr = document.getElementById('current-number').textContent.trim();
-                    const currentPoliStr = document.getElementById('current-poli').textContent.trim();
-                    
-                    if (currentNoStr !== '---') {
-                        const historyContainer = document.getElementById('history-container');
-                        const newCard = document.createElement('div');
-                        newCard.className = 'history-card d-flex justify-content-between align-items-center';
-                        newCard.innerHTML = `
-                            <div>
-                                <div class="text-white-50 small text-uppercase">Nomor</div>
-                                <div class="history-number">${currentNoStr}</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="text-white fw-bold fs-5">${currentPoliStr}</div>
-                                <div class="text-white-50 small">Baru saja</div>
-                            </div>
-                        `;
-                        historyContainer.prepend(newCard);
-                        if (historyContainer.children.length > 4) {
-                            historyContainer.removeChild(historyContainer.lastChild);
-                        }
-                    }
-
-                    // 2. Update UI Main Callout
-                    document.getElementById('current-number').textContent = paddedNoAntrian;
-                    document.getElementById('current-poli').textContent = poliNama;
-
-                    // 3. Mainkan Panggilan Suara
-                    playVoiceAnnouncement(paddedNoAntrian, poliNama);
-                    
-                    // Efek visual kedip layar
-                    const callout = document.getElementById('current-callout');
-                    callout.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-                    setTimeout(() => {
-                        callout.style.background = 'linear-gradient(135deg, var(--primary) 0%, #059669 100%)';
-                    }, 4000);
-                }
-            });
-        }
+        // Fitur Pusher/Reverb dinonaktifkan sesuai permintaan user.
     </script>
 </body>
 </html>
