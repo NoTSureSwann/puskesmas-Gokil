@@ -30,8 +30,20 @@ class ObatFarmasiController extends Controller
     /**
      * Tambah Obat Baru.
      */
-    public function store(StoreObatRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
+        $request->validate([
+            'kode_obat' => 'required|string|unique:obat',
+            'nama_obat' => 'required|string',
+            'satuan' => 'required|string',
+            'kategori' => 'required|string',
+            'stok' => 'required|integer',
+            'stok_minimum' => 'required|integer',
+            'harga_satuan' => 'required|numeric',
+            'tanggal_kadaluarsa' => 'nullable|date',
+            'deskripsi' => 'nullable|string',
+        ]);
+
         Obat::create([
             'kode_obat' => $request->kode_obat,
             'nama_obat' => $request->nama_obat,
@@ -40,6 +52,7 @@ class ObatFarmasiController extends Controller
             'stok' => $request->stok,
             'stok_minimum' => $request->stok_minimum,
             'harga_satuan' => $request->harga_satuan,
+            'tanggal_kadaluarsa' => $request->tanggal_kadaluarsa,
             'deskripsi' => $request->deskripsi,
             'is_aktif' => true,
         ]);
@@ -50,8 +63,19 @@ class ObatFarmasiController extends Controller
     /**
      * Update Obat.
      */
-    public function update(UpdateObatRequest $request, int $id): RedirectResponse
+    public function update(Request $request, int $id): RedirectResponse
     {
+        $request->validate([
+            'nama_obat' => 'required|string',
+            'satuan' => 'required|string',
+            'kategori' => 'required|string',
+            'stok' => 'required|integer',
+            'stok_minimum' => 'required|integer',
+            'harga_satuan' => 'required|numeric',
+            'tanggal_kadaluarsa' => 'nullable|date',
+            'deskripsi' => 'nullable|string',
+        ]);
+
         $obat = Obat::findOrFail($id);
 
         $obat->update([
@@ -61,6 +85,7 @@ class ObatFarmasiController extends Controller
             'stok' => $request->stok,
             'stok_minimum' => $request->stok_minimum,
             'harga_satuan' => $request->harga_satuan,
+            'tanggal_kadaluarsa' => $request->tanggal_kadaluarsa,
             'deskripsi' => $request->deskripsi,
         ]);
 
@@ -93,5 +118,38 @@ class ObatFarmasiController extends Controller
         $obat->delete();
 
         return redirect()->route('farmasi.obat.index')->with('status', "Obat {$obat->nama_obat} berhasil dihapus.");
+    }
+
+    /**
+     * Hapus Obat Massal (Bulk Destroy).
+     */
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'obat_ids' => 'required|array',
+            'obat_ids.*' => 'exists:obat,id',
+        ]);
+
+        $ids = $request->obat_ids;
+        $deletedCount = 0;
+        $failedCount = 0;
+
+        $obats = Obat::query()->whereIn('id', $ids)->get();
+
+        /** @var \App\Models\Obat $obat */
+        foreach ($obats as $obat) {
+            if ($obat->detailResep()->exists()) {
+                $failedCount++;
+            } else {
+                $obat->delete();
+                $deletedCount++;
+            }
+        }
+
+        if ($failedCount > 0) {
+            return back()->with('error', "{$deletedCount} obat berhasil dihapus. {$failedCount} obat gagal dihapus karena sudah ada di riwayat resep medis.");
+        }
+
+        return redirect()->route('farmasi.obat.index')->with('status', "{$deletedCount} obat berhasil dihapus secara massal.");
     }
 }

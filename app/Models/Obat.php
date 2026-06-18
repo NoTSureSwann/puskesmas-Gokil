@@ -10,6 +10,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @mixin \Illuminate\Database\Eloquent\Builder
+ * @mixin \Illuminate\Database\Eloquent\Model
+ */
 class Obat extends Model
 {
     use HasFactory, SoftDeletes;
@@ -24,6 +28,7 @@ class Obat extends Model
         'stok',
         'stok_minimum',
         'harga_satuan',
+        'tanggal_kadaluarsa',
         'deskripsi',
         'is_aktif',
     ];
@@ -33,6 +38,7 @@ class Obat extends Model
         'harga_satuan' => 'decimal:2',
         'stok' => 'integer',
         'stok_minimum' => 'integer',
+        'tanggal_kadaluarsa' => 'date',
     ];
 
     /**

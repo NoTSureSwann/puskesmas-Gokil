@@ -223,6 +223,14 @@
         .navbar-toggler:not(.collapsed) span:nth-child(1) { top: 10px; transform: rotate(135deg); }
         .navbar-toggler:not(.collapsed) span:nth-child(2) { opacity: 0; left: -60px; }
         .navbar-toggler:not(.collapsed) span:nth-child(3) { top: 10px; transform: rotate(-135deg); }
+
+        /* Hide Google Translate UI Elements */
+        body { top: 0px !important; }
+        .goog-te-banner-frame.skiptranslate { display: none !important; }
+        .goog-tooltip { display: none !important; }
+        .goog-tooltip:hover { display: none !important; }
+        .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+        #google_translate_element { display: none !important; }
     </style>
     @yield('styles')
 </head>
@@ -249,14 +257,17 @@
                         <a class="nav-link text-dark fw-medium" href="{{ route('wabah.peta') }}"><i class="fa-solid fa-map-location-dot text-primary me-1"></i> Peta Wabah</a>
                     </li>
                     
-                    <!-- Language Switcher -->
+                    <!-- Auto-Translate Language Switcher -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-dark fw-medium" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fa-solid fa-earth-americas text-primary me-1"></i> {{ strtoupper(App::getLocale()) }}
+                            <i class="fa-solid fa-earth-americas text-primary me-1"></i> <span id="current-lang-text">ID</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
-                            <li><a class="dropdown-item py-2 {{ App::getLocale() == 'id' ? 'active bg-primary text-white' : '' }}" href="{{ route('lang.switch', ['locale' => 'id']) }}">🇮🇩 Indonesia</a></li>
-                            <li><a class="dropdown-item py-2 {{ App::getLocale() == 'en' ? 'active bg-primary text-white' : '' }}" href="{{ route('lang.switch', ['locale' => 'en']) }}">🇬🇧 English</a></li>
+                            <li><a class="dropdown-item py-2 lang-btn active bg-primary text-white" href="#" onclick="changeLanguage('id', 'ID', this)"><i class="fa-solid fa-flag me-2"></i> Indonesia</a></li>
+                            <li><a class="dropdown-item py-2 lang-btn" href="#" onclick="changeLanguage('en', 'EN', this)"><i class="fa-solid fa-flag-usa me-2"></i> English</a></li>
+                            <li><a class="dropdown-item py-2 lang-btn" href="#" onclick="changeLanguage('ar', 'AR', this)"><i class="fa-solid fa-star-and-crescent me-2"></i> العربية (Arabic)</a></li>
+                            <li><a class="dropdown-item py-2 lang-btn" href="#" onclick="changeLanguage('zh-CN', 'ZH', this)"><i class="fa-solid fa-yin-yang me-2"></i> 中文 (Chinese)</a></li>
+                            <li><a class="dropdown-item py-2 lang-btn" href="#" onclick="changeLanguage('ja', 'JA', this)"><i class="fa-solid fa-torii-gate me-2"></i> 日本語 (Japanese)</a></li>
                         </ul>
                     </li>
 
@@ -435,5 +446,30 @@
             });
         }
     </script>
+    
+    <!-- Google Auto Translate Engine -->
+    <div id="google_translate_element"></div>
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({pageLanguage: 'id', autoDisplay: false}, 'google_translate_element');
+        }
+
+        function changeLanguage(langCode, langText, element) {
+            // Update Dropdown UI
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-primary', 'text-white');
+            });
+            element.classList.add('active', 'bg-primary', 'text-white');
+            document.getElementById('current-lang-text').innerText = langText;
+
+            // Trigger Google Translate via DOM
+            let selectField = document.querySelector("select.goog-te-combo");
+            if (selectField) {
+                selectField.value = langCode;
+                selectField.dispatchEvent(new Event("change"));
+            }
+        }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>

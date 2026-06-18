@@ -73,41 +73,41 @@
     <div class="row g-3 mb-4">
         <!-- Live Counters -->
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient text-white" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center">
-                    <div class="bg-white bg-opacity-25 rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px;">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px;">
                         <i class="fa-solid fa-users fs-3"></i>
                     </div>
                     <div>
-                        <p class="mb-0 text-white-50 fw-medium">Kunjungan Hari Ini</p>
-                        <h2 class="mb-0 fw-bold" id="stat-kunjungan">0</h2>
+                        <p class="mb-0 text-muted fw-medium">Kunjungan Hari Ini</p>
+                        <h2 class="mb-0 fw-bold text-dark" id="stat-kunjungan">0</h2>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient text-white" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center">
-                    <div class="bg-white bg-opacity-25 rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px;">
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px;">
                         <i class="fa-solid fa-virus-covid fs-3"></i>
                     </div>
                     <div>
-                        <p class="mb-0 text-white-50 fw-medium">Kasus Bahaya Tinggi</p>
-                        <h2 class="mb-0 fw-bold" id="stat-kasus-tinggi">0</h2>
+                        <p class="mb-0 text-muted fw-medium">Kasus Bahaya Tinggi</p>
+                        <h2 class="mb-0 fw-bold text-dark" id="stat-kasus-tinggi">0</h2>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient text-white" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
                 <div class="card-body p-4 d-flex align-items-center">
-                    <div class="bg-white bg-opacity-25 rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px;">
+                    <div class="rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 60px; height: 60px; background-color: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
                         <i class="fa-solid fa-satellite-dish fs-3"></i>
                     </div>
                     <div>
-                        <p class="mb-0 text-white-50 fw-medium">Klaster Wabah Aktif</p>
-                        <h2 class="mb-0 fw-bold" id="stat-klaster">0</h2>
-                        <small class="text-white-50 d-block mt-1" style="font-size: 0.7rem;"><i class="fa-solid fa-rotate fa-spin"></i> Live Sync</small>
+                        <p class="mb-0 text-muted fw-medium">Klaster Wabah Aktif</p>
+                        <h2 class="mb-0 fw-bold text-dark" id="stat-klaster">0</h2>
+                        <small class="text-primary d-block mt-1 fw-bold" style="font-size: 0.7rem;"><i class="fa-solid fa-rotate fa-spin me-1"></i> Live Sync</small>
                     </div>
                 </div>
             </div>

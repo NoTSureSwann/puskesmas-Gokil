@@ -194,8 +194,30 @@ EOT
                 // Parse JSON response dari Llama
                 $parsedContent = json_decode($content, true);
 
+                // Generate UUID for RLHF tracing
+                $messageId = \Illuminate\Support\Str::uuid()->toString();
+
+                // Build Log Entry for DPO/RLHF dataset
+                $logEntry = [
+                    'message_id' => $messageId,
+                    'timestamp' => now()->toIso8601String(),
+                    'prompt' => $messages,
+                    'response' => $parsedContent
+                ];
+
+                // Ensure directory exists and append to jsonl
+                $logDir = storage_path('app/ai_engine_data');
+                if (!\Illuminate\Support\Facades\File::exists($logDir)) {
+                    \Illuminate\Support\Facades\File::makeDirectory($logDir, 0755, true);
+                }
+                \Illuminate\Support\Facades\File::append(
+                    $logDir . '/interaction_logs.jsonl', 
+                    json_encode($logEntry) . "\n"
+                );
+
                 return [
                     'status' => 'success',
+                    'message_id' => $messageId,
                     'parameter_1' => $parsedContent['patient_response'] ?? 'Maaf, saya tidak mengerti.',
                     'parameter_2' => [
                         'metrics' => $parsedContent['reasoning_metrics'] ?? [],
@@ -238,7 +260,7 @@ EOT
     }
 
     /**
-     * Mengirimkan rating feedback kBot ke Flask AI Engine
+     * Mengirimkan rating feedback kBot ke sistem (Untuk RLHF DPO)
      * 
      * @param string|null $messageId
      * @param int $rating
@@ -248,17 +270,27 @@ EOT
     public function feedbackKbotFlask(?string $messageId, int $rating, string $originalInput): ?array
     {
         try {
-            $response = Http::post("{$this->baseUrl}/kbot/feedback", [
+            $logDir = storage_path('app/ai_engine_data');
+            if (!\Illuminate\Support\Facades\File::exists($logDir)) {
+                \Illuminate\Support\Facades\File::makeDirectory($logDir, 0755, true);
+            }
+
+            $feedbackEntry = [
                 'message_id' => $messageId,
                 'rating' => $rating,
-                'original_input' => $originalInput
-            ]);
+                'original_input' => $originalInput,
+                'timestamp' => now()->toIso8601String()
+            ];
 
-            if ($response->successful()) {
-                return $response->json();
-            }
-            
-            Log::error('AI Engine Error (feedbackKbotFlask): ' . $response->body());
+            \Illuminate\Support\Facades\File::append(
+                $logDir . '/feedback_labels.jsonl', 
+                json_encode($feedbackEntry) . "\n"
+            );
+
+            // Jika masih perlu ke Flask lama:
+            // Http::post("{$this->baseUrl}/kbot/feedback", ...);
+
+            return ['status' => 'success'];
         } catch (\Exception $e) {
             Log::error('AI Engine Exception (feedbackKbotFlask): ' . $e->getMessage());
         }
