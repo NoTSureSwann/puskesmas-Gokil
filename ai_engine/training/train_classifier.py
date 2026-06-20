@@ -24,15 +24,45 @@ def train_main():
             if line.strip():
                 training_data.append(json.loads(line))
                 
-    # Tambahkan feedback data jika ada
+    # Tambahkan feedback data positif sebagai augmented training data
     if os.path.exists(feedback_path):
+        # Baca interaction logs untuk cross-reference message_id
+        interaction_map = {}
+        interaction_log_path = 'data/interaction_logs.jsonl'
+        if os.path.exists(interaction_log_path):
+            with open(interaction_log_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            log_entry = json.loads(line)
+                            if 'message_id' in log_entry:
+                                interaction_map[log_entry['message_id']] = log_entry
+                        except:
+                            pass
+        
         with open(feedback_path, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.strip():
-                    fb = json.loads(line)
-                    # Hanya ambil feedback rating = 1 (koreksi positif)
-                    # Atau ini akan dikembangkan lebih lanjut di feedback_collector
-                    pass
+                    try:
+                        fb = json.loads(line)
+                        # Hanya ambil feedback rating = 1 (koreksi positif / user setuju)
+                        if fb.get('rating') == 1 and fb.get('message_id') in interaction_map:
+                            log_data = interaction_map[fb['message_id']]
+                            input_text = fb.get('original_input', log_data.get('input_text', ''))
+                            # Ekstrak poli_id dari parameter_2 jika tersedia
+                            param2 = log_data.get('parameter_2', {})
+                            nlp_cls = param2.get('nlp_classification', {})
+                            poli_id = nlp_cls.get('poli_id', 0)
+                            
+                            if input_text:
+                                training_data.append({
+                                    'text': input_text,
+                                    'poli_id': poli_id,
+                                    'poli_name': nlp_cls.get('poli_name', 'Umum'),
+                                    'source': 'feedback_rlhf'
+                                })
+                    except Exception as e:
+                        print(f"Warning: Error processing feedback line: {e}")
                     
     if len(training_data) < 20:
         print("WARNING: Data latih < 20. Hentikan.")

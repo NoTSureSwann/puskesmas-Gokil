@@ -300,7 +300,7 @@
         </div>
     </div>
 </div>
-@endpush
+@endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -323,7 +323,7 @@
         Toast.fire({
             icon: 'success',
             title: 'Berhasil!',
-            text: "{{ session('status') }}"
+            text: {!! json_encode(session('status')) !!}
         });
     @endif
 
@@ -331,7 +331,7 @@
         Toast.fire({
             icon: 'error',
             title: 'Gagal!',
-            text: "{{ session('error') }}"
+            text: {!! json_encode(session('error')) !!}
         });
     @endif
 

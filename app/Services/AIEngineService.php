@@ -8,11 +8,23 @@ use Illuminate\Support\Facades\Log;
 class AIEngineService
 {
     protected string $baseUrl;
+    protected string $flaskSecret;
 
     public function __construct()
     {
-        // Secara default menggunakan port 5000 untuk Flask AI API
-        $this->baseUrl = env('AI_ENGINE_URL', 'http://127.0.0.1:5000');
+        // Menggunakan config() agar kompatibel dengan config:cache
+        $this->baseUrl = (string) config('services.ai_engine.flask_url', 'http://127.0.0.1:5000');
+        $this->flaskSecret = (string) config('services.ai_engine.flask_secret', '');
+    }
+
+    /**
+     * Membuat HTTP client dengan API secret header untuk Flask AI Engine.
+     */
+    protected function flaskRequest(): \Illuminate\Http\Client\PendingRequest
+    {
+        return Http::withHeaders([
+            'X-API-Secret' => $this->flaskSecret,
+        ]);
     }
 
     /**
@@ -26,7 +38,7 @@ class AIEngineService
     public function predictSurge($poliId, $dayOfWeek, $hour)
     {
         try {
-            $response = Http::post("{$this->baseUrl}/predict/surge", [
+            $response = $this->flaskRequest()->post("{$this->baseUrl}/predict/surge", [
                 'poli_id' => $poliId,
                 'day_of_week' => $dayOfWeek,
                 'hour' => $hour,
@@ -53,7 +65,7 @@ class AIEngineService
     public function predictComplaint($complaintText)
     {
         try {
-            $response = Http::post("{$this->baseUrl}/predict/complaint", [
+            $response = $this->flaskRequest()->post("{$this->baseUrl}/predict/complaint", [
                 'text' => $complaintText,
             ]);
 
@@ -78,7 +90,7 @@ class AIEngineService
     public function optimizeQueue($queueLength)
     {
         try {
-            $response = Http::post("{$this->baseUrl}/optimize/queue", [
+            $response = $this->flaskRequest()->post("{$this->baseUrl}/optimize/queue", [
                 'queue_length' => $queueLength,
             ]);
 
@@ -98,14 +110,16 @@ class AIEngineService
      * Memanggil model Enterprise kBot (Groq API - Llama model)
      * 
      * @param string $message
+     * @param array $history
+     * @param array $flaskContext Konteks dari Flask AI Engine untuk alignment
      * @return array|null
      */
-    public function analyzeKbot($message, $history = [])
+    public function analyzeKbot($message, $history = [], $flaskContext = [])
     {
         // UU PDP: Anonymize data (hapus angka NIK atau deteksi nama simpel)
         $anonymizedMessage = preg_replace('/\b\d{16}\b/', '[NIK_REDACTED]', $message);
         
-        $groqApiKey = env('GROQ_API_KEY');
+        $groqApiKey = config('services.ai_engine.groq_api_key');
 
         if (!$groqApiKey) {
             Log::error('AI Engine Error: GROQ_API_KEY is missing in .env');
@@ -173,6 +187,20 @@ EOT
                 }
             }
 
+            // Inject konteks Flask AI Engine agar Groq selaras
+            if (!empty($flaskContext)) {
+                $contextMsg = "[KONTEKS AI ENGINE LOKAL] Sistem NLP lokal telah menganalisis keluhan ini dengan hasil: "
+                    . "Triase: " . ($flaskContext['flask_triage'] ?? 'N/A')
+                    . ", ICD-10: " . ($flaskContext['flask_icd10'] ?? 'N/A')
+                    . ", Dokter Rekomendasi: " . ($flaskContext['flask_doctor'] ?? 'Umum')
+                    . ". Gunakan informasi ini sebagai referensi untuk konsistensi, tapi tetap evaluasi independen.";
+
+                $messages[] = [
+                    'role' => 'system',
+                    'content' => $contextMsg
+                ];
+            }
+
             $messages[] = [
                 'role' => 'user',
                 'content' => $anonymizedMessage
@@ -180,7 +208,7 @@ EOT
 
             $response = Http::withToken($groqApiKey)
                 ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model' => 'llama-3.3-70b-versatile',
+                    'model' => config('services.ai_engine.groq_model', 'llama-3.3-70b-versatile'),
                     'messages' => $messages,
                     'temperature' => 0.5,
                     'max_tokens' => 700,
@@ -243,7 +271,7 @@ EOT
     public function analyzeKbotFlask(string $message): ?array
     {
         try {
-            $response = Http::post("{$this->baseUrl}/kbot/analyze", [
+            $response = $this->flaskRequest()->post("{$this->baseUrl}/kbot/analyze", [
                 'message' => $message,
             ]);
 
@@ -307,7 +335,7 @@ EOT
      */
     public function summarizePatientHistory($pasien, $riwayats)
     {
-        $groqApiKey = env('GROQ_API_KEY');
+        $groqApiKey = config('services.ai_engine.groq_api_key');
         if (!$groqApiKey || $riwayats->isEmpty()) {
             return null;
         }
@@ -329,7 +357,7 @@ EOT
         try {
             $response = Http::withToken($groqApiKey)
                 ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model' => 'llama-3.3-70b-versatile',
+                    'model' => config('services.ai_engine.groq_model', 'llama-3.3-70b-versatile'),
                     'messages' => [
                         [
                             'role' => 'system',
@@ -350,6 +378,72 @@ EOT
             }
         } catch (\Exception $e) {
             Log::error('AI Engine Exception (summarizePatientHistory): ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Mengecek interaksi antar obat dan kontraindikasi dengan alergi pasien menggunakan Groq LLM.
+     * 
+     * @param array $obatList Array nama-nama obat
+     * @param string|null $alergiPasien Riwayat alergi pasien
+     * @return array|null Respons JSON terstruktur dari LLM
+     */
+    public function checkDrugInteraction(array $obatList, ?string $alergiPasien = null): ?array
+    {
+        $groqApiKey = config('services.ai_engine.groq_api_key');
+        if (!$groqApiKey || count($obatList) === 0) {
+            return null;
+        }
+
+        $obatString = implode(', ', $obatList);
+        $alergiString = $alergiPasien ? $alergiPasien : 'Tidak ada/Tidak diketahui';
+
+        $systemPrompt = <<<EOT
+Anda adalah Apoteker Klinis AI profesional. Tugas Anda adalah mengecek potensi interaksi obat (Drug Interaction) dan kontraindikasi dengan riwayat alergi pasien.
+
+ATURAN OUTPUT WAJIB BERFORMAT JSON MURNI TANPA TAG MARKDOWN:
+{
+  "risk_level": "Aman" | "Sedang" | "Tinggi",
+  "description": "Deskripsi singkat tentang interaksi yang mungkin terjadi (jika ada).",
+  "recommendation": "Rekomendasi untuk apoteker/dokter."
+}
+
+Jika ada alergi yang berbenturan dengan salah satu obat, set risk_level menjadi "Tinggi".
+Jika tidak ada interaksi signifikan, set risk_level "Aman".
+EOT;
+
+        $userPrompt = "Daftar Obat: $obatString\nRiwayat Alergi Pasien: $alergiString\n\nLakukan analisis sekarang.";
+
+        try {
+            $response = Http::withToken($groqApiKey)
+                ->post('https://api.groq.com/openai/v1/chat/completions', [
+                    'model' => config('services.ai_engine.groq_model', 'llama-3.3-70b-versatile'),
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => $systemPrompt
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $userPrompt
+                        ]
+                    ],
+                    'temperature' => 0.1, // Suhu rendah agar respons deterministik/konsisten
+                    'max_tokens' => 400,
+                    'response_format' => ['type' => 'json_object'] // Force JSON output for Llama 3 models
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $content = $data['choices'][0]['message']['content'] ?? '{}';
+                return json_decode($content, true);
+            }
+            
+            Log::error('AI Engine Error (checkDrugInteraction): ' . $response->body());
+        } catch (\Exception $e) {
+            Log::error('AI Engine Exception (checkDrugInteraction): ' . $e->getMessage());
         }
 
         return null;

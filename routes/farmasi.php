@@ -17,6 +17,7 @@ Route::post('/resep/{id}/item', [ResepFarmasiController::class, 'addResepItem'])
 Route::put('/resep/{id}/item/{detailId}', [ResepFarmasiController::class, 'updateResepItem'])->name('resep.item.update');
 Route::delete('/resep/{id}/item/{detailId}', [ResepFarmasiController::class, 'deleteResepItem'])->name('resep.item.delete');
 Route::post('/resep/{id}/selesai', [ResepFarmasiController::class, 'selesai'])->name('resep.selesai');
+Route::post('/resep/{id}/cek-interaksi', [ResepFarmasiController::class, 'cekInteraksi'])->name('resep.cekInteraksi');
 
 // PDF Printing
 Route::get('/resep/{id}/cetak', [CetakStrukController::class, 'cetak'])->name('resep.cetak');

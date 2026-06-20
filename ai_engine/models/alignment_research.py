@@ -186,7 +186,12 @@ def run_alignment_evaluation_loop(kbot_instance, logs_path="ai_engine/data/inter
     """
     Orchestrates the pre-training, mid-training, and post-training alignment steps.
     Translates research insights into better model behavior.
+    Reads from BOTH Flask logs AND Laravel Groq logs for full coverage.
     """
+    # Tentukan path alternatif ke log Laravel (Groq responses)
+    import os
+    laravel_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    groq_logs_path = os.path.join(laravel_root, 'storage', 'app', 'ai_engine_data', 'interaction_logs.jsonl')
     logging.info("[ALIGNMENT] Starting real-time evaluation loop...")
     autoencoder = NaturalLanguageAutoencoder()
     stress_tester = SafetyStressTester()
@@ -209,7 +214,7 @@ def run_alignment_evaluation_loop(kbot_instance, logs_path="ai_engine/data/inter
     risk_report = frontier_measure.log_emerging_risks(active_users, rt_reliability, safety_score)
     logging.info(f"[FRONTIER AI] Risk Assessment Level: {risk_report['risk_level']}")
     
-    # 2. Evaluate Real-time Interaction Logs
+    # 2. Evaluate Real-time Interaction Logs (Flask AI Engine)
     evaluations = []
     try:
         with open(logs_path, 'r') as f:
@@ -227,12 +232,43 @@ def run_alignment_evaluation_loop(kbot_instance, logs_path="ai_engine/data/inter
                 
                 evaluations.append({
                     "timestamp": data.get("timestamp"),
+                    "source": "flask_ai_engine",
                     "input_length": len(data.get("input_text", "")),
                     "behavioral_tendencies": tendencies,
                     "rl_confession_reward": confession_reward
                 })
     except FileNotFoundError:
-        logging.warning("[ALIGNMENT] Interaction logs not found. Skipping real-time eval.")
+        logging.warning("[ALIGNMENT] Flask interaction logs not found. Skipping Flask eval.")
+    
+    # 2b. Evaluate Groq LLM Interaction Logs (Laravel storage)
+    groq_evaluations = 0
+    try:
+        if os.path.exists(groq_logs_path):
+            with open(groq_logs_path, 'r') as f:
+                lines = f.readlines()
+                for line in lines[-50:]:
+                    if not line.strip(): continue
+                    data = json.loads(line)
+                    
+                    # Ekstrak response dari Groq LLM
+                    groq_response = data.get("response", {})
+                    patient_response = groq_response.get("patient_response", "")
+                    
+                    # Evaluasi behavioral tendencies dari LLM
+                    tendencies = autoencoder.encode_and_evaluate(patient_response, groq_response)
+                    confession_reward = rl_evaluator.calculate_reward(patient_response)
+                    
+                    evaluations.append({
+                        "timestamp": data.get("timestamp"),
+                        "source": "groq_llm",
+                        "input_length": len(str(data.get("prompt", ""))),
+                        "behavioral_tendencies": tendencies,
+                        "rl_confession_reward": confession_reward
+                    })
+                    groq_evaluations += 1
+            logging.info(f"[ALIGNMENT] Evaluated {groq_evaluations} Groq LLM interactions.")
+    except Exception as e:
+        logging.warning(f"[ALIGNMENT] Groq logs evaluation error: {e}")
         
     # 3. Generate Synthetic Data for Next Pre-training Phase
     pipeline = SyntheticDataPipeline()

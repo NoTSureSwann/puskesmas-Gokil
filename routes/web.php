@@ -26,9 +26,11 @@ Route::get('/lang/{locale}', function ($locale) {
     return redirect()->back();
 })->name('lang.switch');
 Route::get('/api/obat/search', [ResepController::class, 'searchObat'])->name('api.obat.search')->middleware(['auth', 'throttle:30,1']);
-Route::post('/api/kbot/analyze', [KbotController::class, 'analyze'])->name('api.kbot.analyze');
-Route::post('/api/kbot/feedback', [KbotController::class, 'feedback'])->name('api.kbot.feedback');
-Route::post('/api/kbot/book', [KbotController::class, 'bookAppointment'])->name('api.kbot.book');
+Route::middleware(['auth', 'throttle:20,1'])->group(function () {
+    Route::post('/api/kbot/analyze', [KbotController::class, 'analyze'])->name('api.kbot.analyze');
+    Route::post('/api/kbot/feedback', [KbotController::class, 'feedback'])->name('api.kbot.feedback');
+    Route::post('/api/kbot/book', [KbotController::class, 'bookAppointment'])->name('api.kbot.book');
+});
 
 // Algoritma Testing Endpoint (Boyer-Moore vs Sequential)
 Route::get('/api/algo/search', function (\Illuminate\Http\Request $request) {

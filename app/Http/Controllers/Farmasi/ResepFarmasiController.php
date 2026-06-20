@@ -184,4 +184,39 @@ class ResepFarmasiController extends Controller
         return redirect()->route('farmasi.resep.cetak', $resep->id)
             ->with('status', 'Resep berhasil diselesaikan! Mengalihkan ke cetak struk...');
     }
+
+    /**
+     * API: Cek interaksi obat menggunakan AI (Groq LLM).
+     */
+    public function cekInteraksi(Request $request, int $id, \App\Services\AIEngineService $aiEngine)
+    {
+        $resep = Resep::with(['kunjungan.pasien', 'detailResep.obat'])->findOrFail($id);
+        
+        $obatList = $resep->detailResep->map(function ($detail) {
+            return $detail->obat->nama_obat;
+        })->toArray();
+
+        if (count($obatList) === 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Belum ada obat dalam resep ini.'
+            ], 400);
+        }
+
+        $alergiPasien = $resep->kunjungan->pasien->riwayat_alergi;
+
+        $result = $aiEngine->checkDrugInteraction($obatList, $alergiPasien);
+
+        if (!$result) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memanggil AI Engine. Pastikan API Key valid.'
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $result
+        ]);
+    }
 }

@@ -1,66 +1,141 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SI Puskesmas & Klinik (E-Health Enterprise)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Proyek Sistem Informasi Puskesmas dan Klinik yang terintegrasi dengan **AI Engine (Groq Llama-3 & Python Flask)** untuk fitur triase otomatis, prediksi antrian, dan cek interaksi obat.
 
-## About Laravel
+### Environment & Versi Sistem
+Proyek ini dikembangkan dan berjalan stabil dengan spesifikasi lokal (Laragon) berikut:
+- **Framework:** Laravel v11.54.0
+- **PHP:** v8.4.12
+- **Database:** MySQL v8.4.3 (Community Server)
+- **Local Web Server:** Laragon Full
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Persyaratan Sistem
+Pastikan Anda telah menginstal perangkat lunak berikut di komputer lokal Anda:
+- **PHP** >= 8.2 (Disarankan menggunakan [Laragon](https://laragon.org/) untuk Windows)
+- **Composer**
+- **Node.js** & **npm**
+- **MySQL** (Termasuk dalam Laragon/XAMPP)
+- **Python** >= 3.10
+- **Git**
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Langkah-langkah Instalasi (Untuk Dosen / Penguji)
 
-## Learning Laravel
+### 1. Clone Repositori atau Download ZIP
+Buka terminal (Git Bash / PowerShell / Command Prompt) dan jalankan perintah clone berikut:
+```bash
+git clone https://github.com/NoTSureSwann/puskesmas-Gokil.git
+cd puskesmas-Gokil
+```
+*(Alternatif: Anda juga bisa men-download *repository* ini sebagai file ZIP dari GitHub, lalu ekstrak ke dalam folder C:\laragon\www dan masuk ke dalam folder tersebut melalui terminal).*
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 2. Instalasi Dependensi Laravel (Backend & Frontend)
+Instal semua package PHP dan JavaScript yang dibutuhkan:
+```bash
+composer install
+npm install
+npm run build
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 3. Konfigurasi Environment (`.env`)
+Salin file `.env.example` menjadi `.env`:
+```bash
+cp .env.example .env
+```
+*(Di Windows, Anda juga bisa melakukan copy-paste file secara manual via File Explorer dan me-rename menjadi `.env`)*
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Buka file `.env` di text editor (VS Code, Notepad, dll.) dan sesuaikan koneksi database Anda:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=metopen_db  # Pastikan Anda telah membuat database kosong bernama 'metopen_db' di phpMyAdmin/HeidiSQL
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-## Laravel Sponsors
+**Konfigurasi Tambahan untuk AI Engine:**
+Tambahkan konfigurasi AI di bagian bawah file `.env`:
+```env
+GROQ_API_KEY=masukkan_api_key_groq_anda_disini
+GROQ_MODEL=llama-3.3-70b-versatile
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+AI_ENGINE_URL=http://127.0.0.1:5000
+AI_ENGINE_SECRET=metopen-ai-secret-2026
+```
+*(Catatan: Dapatkan Groq API Key secara gratis di [console.groq.com](https://console.groq.com))*
 
-### Premium Partners
+### 4. Generate Key & Migrasi Database (Wajib)
+Jalankan perintah berikut untuk mengenerate application key, membuat tabel database, dan mengisi data awal (dummy data/akun):
+```bash
+php artisan key:generate
+php artisan migrate:fresh --seed
+```
+> **⚠️ PENTING: Mengapa langkah ini wajib?**
+> Perintah `--seed` sangat krusial untuk dijalankan karena sistem akan men-generate data akun (Admin, Dokter, Farmasi) beserta _password hash_ yang sudah tervalidasi. Jika Anda tidak melakukan *seed* atau membuat akun secara manual dari phpMyAdmin, **Anda akan mengalami Credential Error (Gagal Login)** karena password tidak terenkripsi dengan standar keamanan Laravel (Bcrypt).
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
 
-## Contributing
+### 5. Instalasi Python AI Engine (Sidecar)
+Buka terminal baru (biarkan terminal Laravel tetap ada), arahkan ke folder `ai_engine`, dan buat Virtual Environment:
+```bash
+cd ai_engine
+python -m venv venv
+```
+Aktifkan Virtual Environment:
+- **Windows:** `venv\Scripts\activate`
+- **Mac/Linux:** `source venv/bin/activate`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Instal library Python yang dibutuhkan:
+```bash
+pip install -r requirements.txt
+```
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Cara Menjalankan Aplikasi Lokal
 
-## Security Vulnerabilities
+Anda perlu menjalankan dua server secara bersamaan (buka 2 jendela terminal):
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Terminal 1: Menjalankan Laravel
+Pastikan Anda berada di root folder proyek, lalu jalankan:
+```bash
+php artisan serve
+```
+Aplikasi Laravel akan berjalan di `http://localhost:8000`.
 
-## License
+### Terminal 2: Menjalankan Python AI Engine
+Pastikan Anda berada di dalam folder `ai_engine` dan virtual environment (`venv`) dalam keadaan aktif.
+Atur variabel environment rahasia agar sama dengan Laravel, lalu jalankan server:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**Windows (PowerShell):**
+```powershell
+$env:AI_ENGINE_SECRET="metopen-ai-secret-2026"
+python api_server.py
+```
+**Windows (CMD):**
+```cmd
+set AI_ENGINE_SECRET=metopen-ai-secret-2026
+python api_server.py
+```
+**Mac/Linux:**
+```bash
+export AI_ENGINE_SECRET="metopen-ai-secret-2026"
+python api_server.py
+```
+Server AI Python akan berjalan di `http://127.0.0.1:5000`.
+
+---
+
+## Kredensial Login Default
+Setelah melakukan `php artisan migrate:fresh --seed`, gunakan akun berikut untuk mencoba sistem:
+
+- **Admin / Resepsionis:** `admin@puskesmas.com` (Pass: `password`)
+- **Dokter:** `dokter@puskesmas.com` (Pass: `password`)
+- **Farmasi / Apoteker:** `farmasi@puskesmas.com` (Pass: `password`)
+- **Pasien:** (Sistem men-generate pasien secara dinamis, cek database tabel `users` untuk email pasien).
+
+## Troubleshooting Umum
+- **Gagal Migrasi / SQL Error:** Pastikan MySQL (Laragon/XAMPP) sudah berjalan dan database `metopen_db` sudah dibuat sebelum menjalankan migrate.
+- **AI / KBot Error 500:** Pastikan server Python Flask (Terminal 2) sedang berjalan dan API Key Groq di `.env` valid.
+- **Tampilan CSS/JS hancur:** Pastikan Anda telah menjalankan `npm run build` untuk mengkompilasi aset Frontend (Vite).

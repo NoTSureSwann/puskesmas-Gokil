@@ -3,6 +3,7 @@ import logging
 import time
 import json
 import pickle
+import hashlib
 import torch
 from stable_baselines3 import PPO
 from models.kbot_intelligence import KBotIntelligence
@@ -20,12 +21,40 @@ CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://loc
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Load models safely (try-except)
+# API Secret for authentication (shared with Laravel)
+API_SECRET = os.environ.get('AI_ENGINE_SECRET', '')
+
+@app.before_request
+def verify_api_secret():
+    """Verifikasi API secret pada setiap request (kecuali health check)."""
+    if request.path == '/health':
+        return None
+    if API_SECRET and request.headers.get('X-API-Secret') != API_SECRET:
+        return jsonify({'error': 'Unauthorized: Invalid API secret'}), 401
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'ok', 'timestamp': time.time()}), 200
+
+# Load models safely (try-except) with hash verification
 ml_model = None
+ML_MODEL_PATH = 'ai_engine/models/saved_ml_model.pkl'
 try:
-    with open('ai_engine/models/saved_ml_model.pkl', 'rb') as f:
-        ml_model = pickle.load(f)
-    logging.info("ML model loaded successfully.")
+    if os.path.exists(ML_MODEL_PATH):
+        # Hash verification sebelum deserialisasi (mencegah RCE via pickle injection)
+        with open(ML_MODEL_PATH, 'rb') as f:
+            model_bytes = f.read()
+            model_hash = hashlib.sha256(model_bytes).hexdigest()
+        
+        hash_file = ML_MODEL_PATH + '.sha256'
+        if os.path.exists(hash_file):
+            with open(hash_file, 'r') as hf:
+                expected_hash = hf.read().strip()
+            if model_hash != expected_hash:
+                raise ValueError(f"Model hash mismatch! Expected {expected_hash}, got {model_hash}. Possible tampering detected.")
+        
+        ml_model = pickle.loads(model_bytes)
+        logging.info(f"ML model loaded successfully. SHA256: {model_hash[:16]}...")
 except Exception as e:
     logging.warning(f"Failed to load ML model: {e}")
 

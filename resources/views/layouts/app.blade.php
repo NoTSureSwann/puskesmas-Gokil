@@ -256,6 +256,9 @@
                     <li class="nav-item">
                         <a class="nav-link text-dark fw-medium" href="{{ route('wabah.peta') }}"><i class="fa-solid fa-map-location-dot text-primary me-1"></i> Peta Wabah</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium" href="https://qr-code-beta-indol.vercel.app/" target="_blank"><i class="fa-solid fa-qrcode text-primary me-1"></i> QR Scanner</a>
+                    </li>
                     
                     <!-- Auto-Translate Language Switcher -->
                     <li class="nav-item dropdown">

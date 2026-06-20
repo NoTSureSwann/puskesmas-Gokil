@@ -31,4 +31,20 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI Engine (Flask + Groq LLM)
+    |--------------------------------------------------------------------------
+    |
+    | Konfigurasi terpusat untuk AI Engine lokal (Flask) dan Groq Cloud API.
+    | Gunakan config('services.ai_engine.*') di kode, BUKAN env() langsung.
+    |
+    */
+    'ai_engine' => [
+        'flask_url' => env('AI_ENGINE_URL', 'http://127.0.0.1:5000'),
+        'flask_secret' => env('AI_ENGINE_SECRET', ''),
+        'groq_api_key' => env('GROQ_API_KEY'),
+        'groq_model' => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
+    ],
+
 ];

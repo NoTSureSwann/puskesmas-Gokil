@@ -36,6 +36,9 @@
             <a class="nav-link text-dark fw-semibold" href="{{ route('admin.laporan.ai_dataset') }}">
                 <i class="fa-solid fa-robot me-1"></i> Dataset Keluhan AI
             </a>
+            <a class="nav-link text-dark fw-semibold" href="https://qr-code-beta-indol.vercel.app/" target="_blank">
+                <i class="fa-solid fa-qrcode me-1 text-primary"></i> Buka QR Scanner
+            </a>
         </div>
     </div>
 

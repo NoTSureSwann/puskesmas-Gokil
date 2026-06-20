@@ -27,6 +27,9 @@ class KbotController extends Controller
 
         $message = strtolower($request->message);
 
+        // Generate Unified Message ID — satu UUID untuk seluruh pipeline
+        $messageId = \Illuminate\Support\Str::uuid()->toString();
+
         // Call Python AI Engine via Flask Proxy
         $complaintAnalysis = $this->aiEngine->analyzeKbotFlask($request->message);
 
@@ -41,17 +44,28 @@ class KbotController extends Controller
 
         $parameter_1 = $complaintAnalysis['parameter_1'];
         $parameter_2 = $complaintAnalysis['parameter_2'];
-        $messageId = $complaintAnalysis['message_id'] ?? null;
 
-        // Jika ada GROQ_API_KEY, gunakan Groq API untuk memperkaya / menggantikan parameter_1 dengan respons LLM yang lebih natural
-        if (env('GROQ_API_KEY')) {
+        // Jika ada GROQ_API_KEY, gunakan Groq API untuk memperkaya respons dengan LLM yang lebih natural
+        // Inject Flask context agar Groq & Flask AI Engine SELARAS (tidak kontradiktif)
+        if (config('services.ai_engine.groq_api_key')) {
             $history = $request->input('history', []);
-            $groqResult = $this->aiEngine->analyzeKbot($request->message, $history);
+
+            // Kirim konteks Flask ke Groq agar triase konsisten
+            $flaskContext = [
+                'flask_severity' => $parameter_2['statistical_quartiles'] ?? [],
+                'flask_triage' => $parameter_2['statistical_quartiles']['cdc_triage'] ?? 'Unknown',
+                'flask_icd10' => $parameter_2['international_standards']['who_icd10'] ?? '',
+                'flask_doctor' => $parameter_2['nlp_classification']['doctor'] ?? 'Umum',
+            ];
+
+            $groqResult = $this->aiEngine->analyzeKbot($request->message, $history, $flaskContext);
             if ($groqResult && isset($groqResult['status']) && $groqResult['status'] === 'success') {
                 $parameter_1 = $groqResult['parameter_1'];
                 if (isset($groqResult['parameter_2']['metrics'])) {
                     $parameter_2['metrics'] = array_merge($parameter_2['metrics'] ?? [], $groqResult['parameter_2']['metrics']);
                 }
+                // Pertahankan message_id dari unified source
+                $messageId = $groqResult['message_id'] ?? $messageId;
             }
         }
 

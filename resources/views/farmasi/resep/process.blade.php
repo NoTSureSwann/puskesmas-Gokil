@@ -274,6 +274,11 @@
                 @endif
 
                 <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
+                    @if ($resep->status === 'diproses' && $canProcess && $resep->detailResep->count() > 0)
+                        <button type="button" id="btn-cek-interaksi" class="btn btn-warning text-dark fw-bold px-4 py-2 shadow-sm" onclick="checkDrugInteraction()">
+                            <i class="fa-solid fa-robot me-2" id="icon-cek-interaksi"></i> Cek Interaksi Obat (AI)
+                        </button>
+                    @endif
                     @if ($resep->status === 'diproses' && $canProcess)
                         <form action="{{ route('farmasi.resep.selesai', $resep->id) }}" method="POST">
                             @csrf
@@ -300,3 +305,68 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function checkDrugInteraction() {
+        const btn = document.getElementById('btn-cek-interaksi');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Menganalisis...';
+        
+        fetch('{{ route("farmasi.resep.cekInteraksi", $resep->id) }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-robot me-2"></i> Cek Interaksi Obat (AI)';
+            
+            if (data.status === 'success') {
+                const risk = data.data.risk_level;
+                let iconType = 'info';
+                let color = '#3085d6';
+                
+                if (risk === 'Aman') {
+                    iconType = 'success';
+                    color = '#28a745';
+                } else if (risk === 'Sedang') {
+                    iconType = 'warning';
+                    color = '#ffc107';
+                } else if (risk === 'Tinggi') {
+                    iconType = 'error';
+                    color = '#dc3545';
+                }
+                
+                Swal.fire({
+                    title: `Tingkat Risiko: <span style="color: ${color}">${risk}</span>`,
+                    html: `
+                        <div class="text-start mt-3">
+                            <p><strong>Analisis Interaksi:</strong><br>${data.data.description}</p>
+                            <p><strong>Rekomendasi Apoteker:</strong><br>${data.data.recommendation}</p>
+                            <hr>
+                            <small class="text-muted"><i class="fa-solid fa-bolt text-warning"></i> <em>Analisis didukung oleh Groq Llama-3 Enterprise. Pastikan untuk tetap menggunakan professional judgement.</em></small>
+                        </div>
+                    `,
+                    icon: iconType,
+                    confirmButtonText: 'Tutup',
+                    width: '600px'
+                });
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-robot me-2"></i> Cek Interaksi Obat (AI)';
+            Swal.fire('Error', 'Terjadi kesalahan sistem saat memanggil AI.', 'error');
+        });
+    }
+</script>
+@endpush
