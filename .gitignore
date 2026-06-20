@@ -23,3 +23,7 @@ __pycache__/
 *.pyc
 ai_engine/data/interaction_logs.jsonl
 ai_engine/data/feedback_labels.jsonl
+
+# Ignore markdown files except README
+*.md
+!README.md
