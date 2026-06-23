@@ -115,7 +115,7 @@
     </div>
 
     <!-- Smart Pharmacy Alerts -->
-    @if(isset($aiAlert) || (isset($stokRendah) && count($stokRendah) > 0))
+    @if(isset($aiAlert) || (isset($stokRendah) && $stokRendah instanceof \Illuminate\Support\Collection && $stokRendah->count() > 0))
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 bg-light rounded-4 shadow-sm">
@@ -128,7 +128,7 @@
                         </div>
                     @endif
 
-                    @if(isset($stokRendah) && count($stokRendah) > 0)
+                    @if(isset($stokRendah) && $stokRendah instanceof \Illuminate\Support\Collection && $stokRendah->count() > 0)
                         <div class="alert alert-danger mb-0 rounded-3 border-danger border-start border-4">
                             <i class="fa-solid fa-pills me-2"></i> <strong>Peringatan Stok Rendah:</strong> 
                             {{ $stokRendah->map(fn($o) => $o->nama_obat . ' (Sisa: ' . $o->stok . ' ' . $o->satuan . ')')->implode(', ') }}

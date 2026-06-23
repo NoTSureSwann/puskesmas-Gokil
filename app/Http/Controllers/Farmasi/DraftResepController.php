@@ -10,19 +10,18 @@ class DraftResepController extends Controller
     public function create()
     {
         // Get active visits that don't have a final Resep or Pembayaran yet
-        $kunjungans = \App\Models\Kunjungan::query()
-            ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa'])
+        $kunjungans = \App\Models\Kunjungan::whereIn('status', ['menunggu', 'dipanggil', 'diperiksa'], 'and', false)
             ->doesntHave('resep')
             ->doesntHave('draftResep')
             ->with(['pasien.user', 'poli'])
             ->get();
             
-        $obats = \App\Models\Obat::query()->where('is_aktif', true)->orderBy('nama_obat', 'asc')->get();
+        $obats = \App\Models\Obat::where('is_aktif', true)->orderBy('nama_obat', 'asc')->get();
 
         return view('farmasi.draft-resep.create', compact('kunjungans', 'obats'));
     }
 
-    public function store(\Illuminate\Http\Request $request)
+    public function store(Request $request)
     {
         $request->validate([
             'kunjungan_id' => 'required|exists:kunjungan,id',
