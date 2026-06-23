@@ -50,7 +50,7 @@ Buka file `.env` di text editor (VS Code, Notepad, dll.) dan sesuaikan koneksi d
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=metopen_db  # Pastikan Anda telah membuat database kosong bernama 'metopen_db' di phpMyAdmin/HeidiSQL
+DB_DATABASE=puskesmas_johar_baru  # Pastikan Anda telah membuat database kosong bernama 'puskesmas_johar_baru' di phpMyAdmin/HeidiSQL
 DB_USERNAME=root
 DB_PASSWORD=
 ```
@@ -136,6 +136,6 @@ Setelah melakukan `php artisan migrate:fresh --seed`, gunakan akun berikut untuk
 - **Pasien:** (Sistem men-generate pasien secara dinamis, cek database tabel `users` untuk email pasien).
 
 ## Troubleshooting Umum
-- **Gagal Migrasi / SQL Error:** Pastikan MySQL (Laragon/XAMPP) sudah berjalan dan database `metopen_db` sudah dibuat sebelum menjalankan migrate.
+- **Gagal Migrasi / SQL Error:** Pastikan MySQL (Laragon/XAMPP) sudah berjalan dan database `puskesmas_johar_baru` sudah dibuat sebelum menjalankan migrate.
 - **AI / KBot Error 500:** Pastikan server Python Flask (Terminal 2) sedang berjalan dan API Key Groq di `.env` valid.
 - **Tampilan CSS/JS hancur:** Pastikan Anda telah menjalankan `npm run build` untuk mengkompilasi aset Frontend (Vite).
