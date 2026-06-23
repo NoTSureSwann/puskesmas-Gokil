@@ -127,25 +127,55 @@
 
         <!-- DUMMY LOGIN CREDENTIALS -->
         <div class="alert py-2 px-3 small mb-4" style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
-            <div class="d-flex align-items-center mb-1">
-                <i class="fa-solid fa-laptop-code text-primary me-2"></i>
-                <strong class="text-dark">{{ __('messages.kredensial_prototipe') }}</strong>
+            <div class="d-flex align-items-center mb-2 justify-content-between">
+                <div>
+                    <i class="fa-solid fa-laptop-code text-primary me-2"></i>
+                    <strong class="text-dark">{{ __('messages.kredensial_prototipe') }}</strong>
+                </div>
             </div>
             <div x-show="activeRole === 'pasien'">
-                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('pasien.bpjs@gmail.com');">pasien.bpjs@gmail.com</code> <br> 
-                Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        Email: <code>pasien@metopen.local</code> <br> 
+                        Password: <code>password123</code>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @click="document.getElementById('email').value='pasien@metopen.local'; document.getElementById('password').value='password123';">
+                        <i class="fa-solid fa-bolt"></i> Isi Cepat
+                    </button>
+                </div>
             </div>
             <div x-show="activeRole === 'dokter'" style="display: none;">
-                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('dr.budisetiawan@puskesmas.go.id');">dr.budisetiawan@puskesmas.go.id</code> <br> 
-                Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        Email: <code>dokter@metopen.local</code> <br> 
+                        Password: <code>password123</code>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @click="document.getElementById('email').value='dokter@metopen.local'; document.getElementById('password').value='password123';">
+                        <i class="fa-solid fa-bolt"></i> Isi Cepat
+                    </button>
+                </div>
             </div>
             <div x-show="activeRole === 'farmasi'" style="display: none;">
-                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('sitiaminah@puskesmas.go.id');">sitiaminah@puskesmas.go.id</code> <br> 
-                Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        Email: <code>farmasi@metopen.local</code> <br> 
+                        Password: <code>password123</code>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @click="document.getElementById('email').value='farmasi@metopen.local'; document.getElementById('password').value='password123';">
+                        <i class="fa-solid fa-bolt"></i> Isi Cepat
+                    </button>
+                </div>
             </div>
             <div x-show="activeRole === 'admin'" style="display: none;">
-                Email: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('admin@puskesmas.go.id');">admin@puskesmas.go.id</code> <br> 
-                Password: <code class="user-select-all" style="cursor: pointer;" @click="$event.target.select(); navigator.clipboard.writeText('password123');">password123</code>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        Email: <code>admin@metopen.local</code> <br> 
+                        Password: <code>password123</code>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @click="document.getElementById('email').value='admin@metopen.local'; document.getElementById('password').value='password123';">
+                        <i class="fa-solid fa-bolt"></i> Isi Cepat
+                    </button>
+                </div>
             </div>
         </div>
 

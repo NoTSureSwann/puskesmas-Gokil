@@ -16,7 +16,7 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'admin@puskesmas.go.id'],
+            ['email' => 'admin@metopen.local'],
             [
                 'name' => 'Super Admin Puskesmas',
                 'password' => Hash::make('password123'),

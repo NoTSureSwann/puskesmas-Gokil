@@ -44,8 +44,9 @@ class UserRoleSeeder extends Seeder
         foreach ($polis as $poliName => $dokters) {
             foreach ($dokters as $index => $dokterName) {
                 $emailName = strtolower(str_replace(' ', '', $dokterName));
+                $email = ($dokterCounter === 1) ? 'dokter@metopen.local' : "dr.{$emailName}@metopen.local";
                 $dokterUser = User::updateOrCreate(
-                    ['email' => "dr.{$emailName}@puskesmas.go.id"],
+                    ['email' => $email],
                     [
                         'name' => "dr. {$dokterName}",
                         'password' => Hash::make('password123'),
@@ -78,7 +79,7 @@ class UserRoleSeeder extends Seeder
 
         // 2. Seed Farmasi (Apoteker)
         $farmasiUser = User::updateOrCreate(
-            ['email' => 'sitiaminah@puskesmas.go.id'],
+            ['email' => 'farmasi@metopen.local'],
             [
                 'name' => 'Siti Aminah, S.Farm',
                 'password' => Hash::make('password123'),
@@ -99,7 +100,7 @@ class UserRoleSeeder extends Seeder
 
         // 3. Seed Pasien (BPJS)
         $pasienUserBpjs = User::updateOrCreate(
-            ['email' => 'pasien.bpjs@gmail.com'],
+            ['email' => 'pasien@metopen.local'],
             [
                 'name' => 'Ahmad Hidayat',
                 'password' => Hash::make('password123'),
@@ -130,7 +131,7 @@ class UserRoleSeeder extends Seeder
 
         // 4. Seed Pasien (Umum)
         $pasienUserUmum = User::updateOrCreate(
-            ['email' => 'pasien.umum@gmail.com'],
+            ['email' => 'pasien.umum@metopen.local'],
             [
                 'name' => 'Rina Wijaya',
                 'password' => Hash::make('password123'),
