@@ -38,20 +38,20 @@ class DokterDashboardController extends Controller
 
         // 1. Stats Bar
         $totalPasienHariIni = Kunjungan::query()
-            ->where('dokter_id', $user->id)
+            ->where('dokter_id', $dokter->id)
             ->whereDate('tanggal_kunjungan', $today)->count();
 
         $menungguCount = Kunjungan::query()
-            ->where('dokter_id', $user->id)
+            ->where('dokter_id', $dokter->id)
             ->whereDate('tanggal_kunjungan', $today)->where('status', 'menunggu')->count();
 
         $selesaiCount = Kunjungan::query()
-            ->where('dokter_id', $user->id)
+            ->where('dokter_id', $dokter->id)
             ->whereDate('tanggal_kunjungan', $today)->where('status', 'selesai')->count();
 
         // 2. Daftar Antrian Pasien Hari Ini (Menunggu, Dipanggil, Diperiksa, Resep)
         $antrians = Kunjungan::query()
-            ->where('dokter_id', $user->id)
+            ->where('dokter_id', $dokter->id)
             ->whereDate('tanggal_kunjungan', $today)
             ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa', 'resep'])
             ->with('pasien.user')
@@ -81,7 +81,7 @@ class DokterDashboardController extends Controller
         $kunjungan = Kunjungan::query()->where('status', 'menunggu')->findOrFail($id);
 
         // Validasi ownership: kunjungan harus milik dokter ini
-        if ($kunjungan->dokter_id !== $user->id) {
+        if ($kunjungan->dokter_id !== $dokter->id) {
             abort(403, 'Anda tidak memiliki akses ke kunjungan ini.');
         }
 
@@ -112,7 +112,7 @@ class DokterDashboardController extends Controller
         $kunjungan = Kunjungan::query()->where('status', 'dipanggil')->findOrFail($id);
 
         // Validasi ownership: kunjungan harus milik dokter ini
-        if ($kunjungan->dokter_id !== $user->id) {
+        if ($kunjungan->dokter_id !== $dokter->id) {
             abort(403, 'Anda tidak memiliki akses ke kunjungan ini.');
         }
 
