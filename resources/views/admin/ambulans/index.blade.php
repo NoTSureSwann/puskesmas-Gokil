@@ -68,33 +68,6 @@
                                 <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateModal{{ $item->id }}">
                                     Update Status
                                 </button>
-                                
-                                <!-- Update Modal -->
-                                <div class="modal fade" id="updateModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
-                                  <div class="modal-dialog modal-sm modal-dialog-centered">
-                                    <div class="modal-content border-0 shadow text-start">
-                                      <form action="{{ route('admin.ambulans.status', $item->id) }}" method="POST">
-                                          @csrf
-                                          <div class="modal-header">
-                                              <h6 class="modal-title fw-bold">Update Status</h6>
-                                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                          </div>
-                                          <div class="modal-body">
-                                              <select name="status" class="form-select">
-                                                  <option value="menunggu" {{ $item->status === 'menunggu' ? 'selected' : '' }}>Menunggu</option>
-                                                  <option value="dijemput" {{ $item->status === 'dijemput' ? 'selected' : '' }}>Sedang Dijemput</option>
-                                                  <option value="selesai" {{ $item->status === 'selesai' ? 'selected' : '' }}>Selesai</option>
-                                                  <option value="batal" {{ $item->status === 'batal' ? 'selected' : '' }}>Batal</option>
-                                              </select>
-                                          </div>
-                                          <div class="modal-footer pb-2">
-                                              <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Tutup</button>
-                                              <button type="submit" class="btn btn-sm btn-primary">Simpan</button>
-                                          </div>
-                                      </form>
-                                    </div>
-                                  </div>
-                                </div>
                             </td>
                         </tr>
                     @empty
@@ -108,6 +81,36 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Update Modals -->
+        @foreach($panggilan as $item)
+        <div class="modal fade" id="updateModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content border-0 shadow text-start">
+              <form action="{{ route('admin.ambulans.status', $item->id) }}" method="POST">
+                  @csrf
+                  <div class="modal-header">
+                      <h6 class="modal-title fw-bold">Update Status</h6>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                      <select name="status" class="form-select">
+                          <option value="menunggu" {{ $item->status === 'menunggu' ? 'selected' : '' }}>Menunggu</option>
+                          <option value="dijemput" {{ $item->status === 'dijemput' ? 'selected' : '' }}>Sedang Dijemput</option>
+                          <option value="selesai" {{ $item->status === 'selesai' ? 'selected' : '' }}>Selesai</option>
+                          <option value="batal" {{ $item->status === 'batal' ? 'selected' : '' }}>Batal</option>
+                      </select>
+                  </div>
+                  <div class="modal-footer pb-2">
+                      <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Tutup</button>
+                      <button type="submit" class="btn btn-sm btn-primary">Simpan</button>
+                  </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        @endforeach
+
         <div class="card-footer bg-white border-top-0 pt-3">
             {{ $panggilan->links() }}
         </div>

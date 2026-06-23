@@ -42,4 +42,12 @@ class AiDataset extends Model
     {
         return $this->belongsTo(Kunjungan::class, 'kunjungan_id');
     }
+
+    /**
+     * Relasi ke model AiFeedback.
+     */
+    public function feedbacks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AiFeedback::class, 'ai_dataset_id');
+    }
 }

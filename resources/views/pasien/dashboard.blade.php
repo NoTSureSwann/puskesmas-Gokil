@@ -47,42 +47,7 @@
         </div>
     </div>
 
-    <!-- Modal Ambulans -->
-    <div class="modal fade" id="ambulansModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4 border-0 shadow-lg">
-                <div class="modal-header bg-danger text-white border-0 pb-3 rounded-top-4">
-                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-truck-medical me-2"></i> Panggilan Ambulans Darurat</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form action="{{ route('pasien.ambulans.call') }}" method="POST">
-                    @csrf
-                    <div class="modal-body p-4">
-                        <div class="alert alert-warning mb-4">
-                            <i class="fa-solid fa-triangle-exclamation me-2"></i> Gunakan layanan ini hanya dalam kondisi <strong>darurat medis</strong>. Petugas kami akan memprioritaskan panggilan ini.
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Alamat Penjemputan</label>
-                            <textarea name="alamat_jemput" class="form-control bg-light" rows="3" required>{{ $pasien->alamat ? $pasien->alamat . ', ' . $pasien->kelurahan . ', ' . $pasien->kecamatan : '' }}</textarea>
-                            <div class="form-text">Ubah jika lokasi jemput berbeda dengan alamat terdaftar.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">No. Telepon Aktif</label>
-                            <input type="text" name="no_telepon" class="form-control bg-light" value="{{ $user->phone }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Keluhan Darurat (Opsional)</label>
-                            <textarea name="keluhan_darurat" class="form-control bg-light" rows="2" placeholder="Contoh: Sesak napas hebat, pendarahan, dll."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 pt-0 p-4">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-phone-volume me-2"></i> Panggil Ambulans Sekarang</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Patient Info Card -->
     <div class="row g-4 mb-4" x-data="{ shown: false }" x-intersect.once="shown = true" :class="shown ? 'animated-fade' : 'opacity-0'">
@@ -190,28 +155,6 @@
                             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
                                 <i class="fa-solid fa-ban me-2 icon-bounce-hover"></i> Batalkan Kunjungan
                             </button>
-                            
-                            <!-- Cancel Modal -->
-                            <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
-                              <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content rounded-4 border-0 shadow-lg">
-                                  <div class="modal-header border-0 pb-0">
-                                    <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Konfirmasi Pembatalan</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                  </div>
-                                  <div class="modal-body">
-                                    Apakah Anda yakin ingin membatalkan antrian kunjungan ini? Tindakan ini tidak dapat dibatalkan.
-                                  </div>
-                                  <div class="modal-footer border-0 pt-0">
-                                    <button type="button" class="btn btn-light fw-medium" data-bs-dismiss="modal">Tutup</button>
-                                    <form action="{{ route('pasien.kunjungan.batal', $antrianAktif->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-danger text-white fw-medium"><i class="fa-solid fa-check me-2"></i> Ya, Batalkan</button>
-                                    </form>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
                         @endif
                     </div>
                 </div>
@@ -259,41 +202,6 @@
                                 <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailModal{{ $kunj->id }}">
                                     <i class="fa-solid fa-eye icon-bounce-hover"></i> Detail
                                 </button>
-                                
-                                <!-- Detail Modal -->
-                                <div class="modal fade" id="detailModal{{ $kunj->id }}" tabindex="-1" aria-hidden="true">
-                                  <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content rounded-4 border-0 shadow">
-                                      <div class="modal-header border-bottom-0 pb-0">
-                                        <h5 class="modal-title fw-bold"><i class="fa-solid fa-notes-medical text-primary me-2"></i> Detail Kunjungan</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                      </div>
-                                      <div class="modal-body text-start">
-                                        <div class="mb-3">
-                                            <span class="small text-muted d-block">Nomor Kunjungan</span>
-                                            <span class="fw-bold fs-5">{{ $kunj->no_kunjungan }}</span>
-                                        </div>
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-6">
-                                                <span class="small text-muted d-block">Poli Tujuan</span>
-                                                <span class="fw-semibold">{{ $kunj->poli->nama_poli }}</span>
-                                            </div>
-                                            <div class="col-6">
-                                                <span class="small text-muted d-block">Status</span>
-                                                <span class="badge status-badge status-{{ $kunj->status }}">{{ $kunj->status }}</span>
-                                            </div>
-                                            <div class="col-12">
-                                                <span class="small text-muted d-block">Dokter Pemeriksa</span>
-                                                <span class="fw-semibold">{{ $kunj->dokter ? $kunj->dokter->user->name : 'Belum Ditentukan' }}</span>
-                                            </div>
-                                        </div>
-                                      </div>
-                                      <div class="modal-footer border-top-0 pt-0">
-                                        <a href="{{ route('pasien.kunjungan', $kunj->id) }}" class="btn btn-primary w-100 text-white"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i> Lihat Halaman Lengkap</a>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
                             </td>
                         </tr>
                     @empty
@@ -304,9 +212,109 @@
                 </tbody>
             </table>
         </div>
+        
     </div>
 </div>
 </div>
+
+<!-- Modal Ambulans -->
+<div class="modal fade" id="ambulansModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white border-0 pb-3 rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-truck-medical me-2"></i> Panggilan Ambulans Darurat</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('pasien.ambulans.call') }}" method="POST">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning mb-4">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i> Gunakan layanan ini hanya dalam kondisi <strong>darurat medis</strong>. Petugas kami akan memprioritaskan panggilan ini.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Alamat Penjemputan</label>
+                        <textarea name="alamat_jemput" class="form-control bg-light" rows="3" required>{{ $pasien->alamat ? $pasien->alamat . ', ' . $pasien->kelurahan . ', ' . $pasien->kecamatan : '' }}</textarea>
+                        <div class="form-text">Ubah jika lokasi jemput berbeda dengan alamat terdaftar.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">No. Telepon Aktif</label>
+                        <input type="text" name="no_telepon" class="form-control bg-light" value="{{ $user->phone }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Keluhan Darurat (Opsional)</label>
+                        <textarea name="keluhan_darurat" class="form-control bg-light" rows="2" placeholder="Contoh: Sesak napas hebat, pendarahan, dll."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 p-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-phone-volume me-2"></i> Panggil Ambulans Sekarang</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modals -->
+@foreach ($riwayatKunjungan as $kunj)
+<div class="modal fade" id="detailModal{{ $kunj->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-notes-medical text-primary me-2"></i> Detail Kunjungan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-start">
+        <div class="mb-3">
+            <span class="small text-muted d-block">Nomor Kunjungan</span>
+            <span class="fw-bold fs-5">{{ $kunj->no_kunjungan }}</span>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-6">
+                <span class="small text-muted d-block">Poli Tujuan</span>
+                <span class="fw-semibold">{{ $kunj->poli->nama_poli }}</span>
+            </div>
+            <div class="col-6">
+                <span class="small text-muted d-block">Status</span>
+                <span class="badge status-badge status-{{ $kunj->status }}">{{ $kunj->status }}</span>
+            </div>
+            <div class="col-12">
+                <span class="small text-muted d-block">Dokter Pemeriksa</span>
+                <span class="fw-semibold">{{ $kunj->dokter ? $kunj->dokter->user->name : 'Belum Ditentukan' }}</span>
+            </div>
+        </div>
+        </div>
+        <div class="modal-footer border-top-0 pt-0">
+        <a href="{{ route('pasien.kunjungan', $kunj->id) }}" class="btn btn-primary w-100 text-white"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i> Lihat Halaman Lengkap</a>
+        </div>
+    </div>
+    </div>
+</div>
+@endforeach
+
+<!-- Cancel Modal -->
+@if ($antrianAktif && $antrianAktif->status === 'menunggu')
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Konfirmasi Pembatalan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Apakah Anda yakin ingin membatalkan antrian kunjungan ini? Tindakan ini tidak dapat dibatalkan.
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light fw-medium" data-bs-dismiss="modal">Tutup</button>
+        <form action="{{ route('pasien.kunjungan.batal', $antrianAktif->id) }}" method="POST" class="d-inline">
+            @csrf
+            <button type="submit" class="btn btn-danger text-white fw-medium"><i class="fa-solid fa-check me-2"></i> Ya, Batalkan</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+@endif
+
 @endsection
 
 @section('scripts')

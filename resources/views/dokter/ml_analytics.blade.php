@@ -102,13 +102,17 @@
         <div class="col-lg-6">
             <div class="glass-panel h-100">
                 <h5 class="fw-bold mb-3">Distribusi Confidence Score Model</h5>
-                <canvas id="confidenceChart" height="250"></canvas>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="confidenceChart"></canvas>
+                </div>
             </div>
         </div>
         <div class="col-lg-6">
             <div class="glass-panel h-100">
                 <h5 class="fw-bold mb-3">Tren Pertumbuhan Data Harian</h5>
-                <canvas id="trendChart" height="250"></canvas>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="trendChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -165,61 +169,67 @@
                             </td>
                         </tr>
 
-                        <!-- Modal RLHF -->
-                        <div class="modal fade" id="rlhfModal-{{ $data->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header border-0">
-                                        <h5 class="modal-title fw-bold"><i class="fa-solid fa-robot text-primary me-2"></i> Latih Model AI (RLHF)</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="alert alert-light border">
-                                            <strong>Keluhan Asli:</strong><br>
-                                            "{{ $data->raw_text }}"
-                                        </div>
-                                        <form action="{{ route('dokter.ml.analytics.feedback', $data->id) }}" method="POST">
-                                            @csrf
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold">Poli yang Sebenarnya <span class="text-danger">*</span></label>
-                                                <select name="corrected_poli" class="form-select" required>
-                                                    <option value="Poli Umum" {{ $data->predicted_poli == 'Poli Umum' ? 'selected' : '' }}>Poli Umum</option>
-                                                    <option value="Poli Gigi" {{ $data->predicted_poli == 'Poli Gigi' ? 'selected' : '' }}>Poli Gigi</option>
-                                                    <option value="Poli KIA" {{ $data->predicted_poli == 'Poli KIA' ? 'selected' : '' }}>Poli KIA (Ibu & Anak)</option>
-                                                    <option value="Poli Gizi" {{ $data->predicted_poli == 'Poli Gizi' ? 'selected' : '' }}>Poli Gizi</option>
-                                                </select>
-                                                <div class="form-text">Bantu koreksi atau pastikan tebakan AI sudah benar.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold">Beri Penilaian (Reward Score) <span class="text-danger">*</span></label>
-                                                <div class="btn-group w-100" role="group">
-                                                    <input type="radio" class="btn-check" name="reward_score" id="btnradio1-{{$data->id}}" value="1" required>
-                                                    <label class="btn btn-outline-success" for="btnradio1-{{$data->id}}"><i class="fa-solid fa-thumbs-up"></i> Tepat (+1)</label>
-
-                                                    <input type="radio" class="btn-check" name="reward_score" id="btnradio2-{{$data->id}}" value="0">
-                                                    <label class="btn btn-outline-secondary" for="btnradio2-{{$data->id}}"><i class="fa-solid fa-minus"></i> Netral (0)</label>
-
-                                                    <input type="radio" class="btn-check" name="reward_score" id="btnradio3-{{$data->id}}" value="-1">
-                                                    <label class="btn btn-outline-danger" for="btnradio3-{{$data->id}}"><i class="fa-solid fa-thumbs-down"></i> Keliru (-1)</label>
-                                                </div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold">Catatan Klinis Tambahan (Opsional)</label>
-                                                <textarea name="notes" class="form-control" rows="2" placeholder="Mengapa prediksi ini keliru?"></textarea>
-                                            </div>
-                                            <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-paper-plane me-1"></i> Simpan Label (Submit RLHF)</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         @endforeach
                     </tbody>
                 </table>
             </div>
+            
         @endif
     </div>
 </div>
+
+<!-- Modal RLHF (Dipindahkan ke luar tabel & kontainer glass-panel untuk menghindari isu z-index/backdrop Bootstrap) -->
+@if(isset($uncertainData) && $uncertainData->isNotEmpty())
+    @foreach($uncertainData as $data)
+    <div class="modal fade" id="rlhfModal-{{ $data->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-robot text-primary me-2"></i> Latih Model AI (RLHF)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border">
+                        <strong>Keluhan Asli:</strong><br>
+                        "{{ $data->raw_text }}"
+                    </div>
+                    <form action="{{ route('dokter.ml.analytics.feedback', $data->id) }}" method="POST">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Poli yang Sebenarnya <span class="text-danger">*</span></label>
+                            <select name="corrected_poli" class="form-select" required>
+                                <option value="Poli Umum" {{ $data->predicted_poli == 'Poli Umum' ? 'selected' : '' }}>Poli Umum</option>
+                                <option value="Poli Gigi" {{ $data->predicted_poli == 'Poli Gigi' ? 'selected' : '' }}>Poli Gigi</option>
+                                <option value="Poli KIA" {{ $data->predicted_poli == 'Poli KIA' ? 'selected' : '' }}>Poli KIA (Ibu & Anak)</option>
+                                <option value="Poli Gizi" {{ $data->predicted_poli == 'Poli Gizi' ? 'selected' : '' }}>Poli Gizi</option>
+                            </select>
+                            <div class="form-text">Bantu koreksi atau pastikan tebakan AI sudah benar.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Beri Penilaian (Reward Score) <span class="text-danger">*</span></label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="reward_score" id="btnradio1-{{$data->id}}" value="1" required>
+                                <label class="btn btn-outline-success" for="btnradio1-{{$data->id}}"><i class="fa-solid fa-thumbs-up"></i> Tepat (+1)</label>
+
+                                <input type="radio" class="btn-check" name="reward_score" id="btnradio2-{{$data->id}}" value="0">
+                                <label class="btn btn-outline-secondary" for="btnradio2-{{$data->id}}"><i class="fa-solid fa-minus"></i> Netral (0)</label>
+
+                                <input type="radio" class="btn-check" name="reward_score" id="btnradio3-{{$data->id}}" value="-1">
+                                <label class="btn btn-outline-danger" for="btnradio3-{{$data->id}}"><i class="fa-solid fa-thumbs-down"></i> Keliru (-1)</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Catatan Klinis Tambahan (Opsional)</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Mengapa prediksi ini keliru?"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-paper-plane me-1"></i> Simpan Label (Submit RLHF)</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endforeach
+@endif
 @endsection
 
 @section('scripts')
