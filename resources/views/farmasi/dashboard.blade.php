@@ -80,6 +80,9 @@
             <a class="nav-link text-dark fw-semibold" href="{{ route('farmasi.obat.index') }}">
                 <i class="fa-solid fa-pills me-1"></i> Manajemen Obat
             </a>
+            <a class="nav-link bg-success text-white fw-semibold" href="{{ route('farmasi.draft-resep.create') }}">
+                <i class="fa-solid fa-pen-to-square me-1"></i> Input Rekomendasi Obat
+            </a>
         </div>
     </div>
 
@@ -112,7 +115,7 @@
     </div>
 
     <!-- Smart Pharmacy Alerts -->
-    @if(isset($aiAlert) || (isset($stokRendah) && $stokRendah->isNotEmpty()))
+    @if(isset($aiAlert) || (isset($stokRendah) && count($stokRendah) > 0))
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 bg-light rounded-4 shadow-sm">
@@ -125,7 +128,7 @@
                         </div>
                     @endif
 
-                    @if(isset($stokRendah) && $stokRendah->isNotEmpty())
+                    @if(isset($stokRendah) && count($stokRendah) > 0)
                         <div class="alert alert-danger mb-0 rounded-3 border-danger border-start border-4">
                             <i class="fa-solid fa-pills me-2"></i> <strong>Peringatan Stok Rendah:</strong> 
                             {{ $stokRendah->map(fn($o) => $o->nama_obat . ' (Sisa: ' . $o->stok . ' ' . $o->satuan . ')')->implode(', ') }}

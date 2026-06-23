@@ -36,7 +36,7 @@ class ResepController extends Controller
         $dokter = Auth::user()->profilDokter;
         
         $kunjungan = Kunjungan::query()->where('status', 'diperiksa')
-            ->with(['pasien.user'])
+            ->with(['pasien.user', 'draftResep.detailDraftResep.obat'])
             ->findOrFail($kunjunganId);
 
         // Validasi ownership: kunjungan harus di poli milik dokter ini
@@ -48,7 +48,9 @@ class ResepController extends Controller
         // Mengambil obat aktif untuk pilihan input
         $obats = Obat::aktif()->get();
 
-        return view('dokter.resep.create', compact('kunjungan', 'obats'));
+        $draftResep = $kunjungan->draftResep;
+
+        return view('dokter.resep.create', compact('kunjungan', 'obats', 'draftResep'));
     }
 
     /**
@@ -139,7 +141,12 @@ class ResepController extends Controller
         // Broadcast KunjunganUpdated event for real-time queue syncing
         event(new KunjunganUpdated($kunjungan));
 
-        // 6. Jika prioritas Urgen, kirim email notifikasi ke admin (Head of Clinic)
+        // 6. Update DraftResep status jika ada
+        if ($kunjungan->draftResep) {
+            $kunjungan->draftResep->update(['status' => 'divalidasi']);
+        }
+
+        // 7. Jika prioritas Urgen, kirim email notifikasi ke admin (Head of Clinic)
         if ($resep->prioritas === 'urgen') {
             $admins = User::query()->where('role', 'admin')->where('status', 'aktif')->pluck('email')->toArray();
             if (!empty($admins)) {

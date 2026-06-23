@@ -60,6 +60,40 @@
                     @endif
                 </div>
 
+                <!-- DRAFT RESEP (FARMASI RECOMMENDATION) -->
+                @if(isset($draftResep) && $draftResep->status === 'draft')
+                <div class="alert alert-info mb-4">
+                    <h5 class="fw-bold"><i class="fa-solid fa-pills me-2"></i> Rekomendasi Farmasi</h5>
+                    <p class="small mb-2">Apoteker telah merekomendasikan obat untuk pasien ini. Anda dapat menggunakan rekomendasi ini atau mengubahnya di bawah.</p>
+                    @if($draftResep->catatan_farmasi)
+                        <p class="small fst-italic mb-2">Catatan Apoteker: "{{ $draftResep->catatan_farmasi }}"</p>
+                    @endif
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered bg-white mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nama Obat</th>
+                                    <th>Jumlah</th>
+                                    <th>Dosis & Aturan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($draftResep->detailDraftResep as $detail)
+                                <tr>
+                                    <td>{{ $detail->obat->nama_obat }}</td>
+                                    <td>{{ $detail->jumlah }} {{ $detail->obat->satuan }}</td>
+                                    <td>{{ $detail->dosis }} - {{ $detail->aturan_pakai }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm mt-3" @click="loadDraftData()">
+                        <i class="fa-solid fa-copy me-1"></i> Gunakan Rekomendasi Ini
+                    </button>
+                </div>
+                @endif
+
                 <!-- DYNAMIC DRUG ROWS (Alpine.js) -->
                 <h5 class="fw-bold mb-3"><i class="fa-solid fa-pills text-primary me-2"></i> Daftar Resep Obat</h5>
                 
@@ -210,6 +244,32 @@
             hasEmptyOrOutofStockObat() {
                 // Nonaktifkan tombol kirim resep jika ada obat yang stoknya 0 atau tidak terpilih
                 return this.rows.some(row => !row.obat_id || row.stok === 0);
+            },
+            
+            loadDraftData() {
+                @if(isset($draftResep) && $draftResep->detailDraftResep->count() > 0)
+                this.rows = []; // Clear existing rows
+                
+                let draftRows = @json($draftResep->detailDraftResep);
+                
+                draftRows.forEach(draft => {
+                    const obatId = parseInt(draft.obat_id);
+                    const selectedObat = this.obatsList.find(item => item.id === obatId);
+                    
+                    this.rows.push({
+                        obat_id: draft.obat_id,
+                        jumlah: draft.jumlah,
+                        dosis: draft.dosis,
+                        aturan_pakai: draft.aturan_pakai,
+                        keterangan: draft.keterangan || '',
+                        stok: selectedObat ? selectedObat.stok : null,
+                        stok_min: selectedObat ? selectedObat.stok_minimum : 0,
+                        harga: selectedObat ? selectedObat.harga_satuan : null
+                    });
+                });
+                
+                alert('Rekomendasi obat berhasil diisikan ke dalam form resep.');
+                @endif
             }
         };
     }

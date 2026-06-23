@@ -24,5 +24,9 @@ Route::get('/resep/{id}/cetak', [CetakStrukController::class, 'cetak'])->name('r
 
 // Manajemen Master Obat (Farmasi)
 Route::resource('obat', \App\Http\Controllers\Farmasi\ObatFarmasiController::class)->except(['create', 'edit', 'show']);
+
+// Kolaborasi Resep (Rekomendasi Farmasi ke Dokter)
+Route::get('/draft-resep/create', [\App\Http\Controllers\Farmasi\DraftResepController::class, 'create'])->name('draft-resep.create');
+Route::post('/draft-resep', [\App\Http\Controllers\Farmasi\DraftResepController::class, 'store'])->name('draft-resep.store');
 Route::post('obat/bulk-destroy', [\App\Http\Controllers\Farmasi\ObatFarmasiController::class, 'bulkDestroy'])->name('obat.bulk-destroy');
 Route::post('obat/{id}/toggle', [\App\Http\Controllers\Farmasi\ObatFarmasiController::class, 'toggle'])->name('obat.toggle');

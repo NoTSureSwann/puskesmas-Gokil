@@ -83,4 +83,12 @@ class Kunjungan extends Model
     {
         return $this->hasOne(Pembayaran::class, 'kunjungan_id');
     }
+
+    /**
+     * Relasi ke model DraftResep (Farmasi).
+     */
+    public function draftResep(): HasOne
+    {
+        return $this->hasOne(DraftResep::class, 'kunjungan_id');
+    }
 }
