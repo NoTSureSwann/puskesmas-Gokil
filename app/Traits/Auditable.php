@@ -5,6 +5,11 @@ namespace App\Traits;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * @method static void created(\Closure|string|array $callback)
+ * @method static void updated(\Closure|string|array $callback)
+ * @method static void deleted(\Closure|string|array $callback)
+ */
 trait Auditable
 {
     public static function bootAuditable()
@@ -22,7 +27,7 @@ trait Auditable
         });
     }
 
-    protected function logAudit($event)
+    protected function logAudit(string $event)
     {
         $oldValues = [];
         $newValues = [];
@@ -43,9 +48,9 @@ trait Auditable
             'auditable_id' => $this->getKey(),
             'old_values' => json_encode($oldValues),
             'new_values' => json_encode($newValues),
-            'url' => request()->fullUrl(),
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
+            'url' => \Illuminate\Support\Facades\Request::fullUrl(),
+            'ip_address' => \Illuminate\Support\Facades\Request::ip(),
+            'user_agent' => \Illuminate\Support\Facades\Request::userAgent(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);

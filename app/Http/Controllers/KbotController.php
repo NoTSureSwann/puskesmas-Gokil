@@ -207,7 +207,7 @@ class KbotController extends Controller
         // Cek jika sudah terdaftar di poli yang sama pada hari yang sama
         $exist = \App\Models\Kunjungan::query()->where('pasien_id', $user->profilPasien->id)
             ->where('poli_id', $poli->id)
-            ->whereDate('tanggal_kunjungan', $today)
+            ->whereDate('tanggal_kunjungan', '=', $today, 'and')
             ->whereIn('status', ['menunggu', 'dipanggil', 'diperiksa', 'resep'])
             ->first();
 
@@ -218,7 +218,7 @@ class KbotController extends Controller
             ], 400);
         }
 
-        $noAntrian = \App\Models\Kunjungan::query()->whereDate('tanggal_kunjungan', $today)
+        $noAntrian = \App\Models\Kunjungan::query()->whereDate('tanggal_kunjungan', '=', $today, 'and')
             ->where('dokter_id', $dokter->id)
             ->max('no_antrian');
         $noAntrian = $noAntrian ? $noAntrian + 1 : 1;

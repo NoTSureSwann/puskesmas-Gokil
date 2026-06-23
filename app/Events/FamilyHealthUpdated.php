@@ -15,8 +15,8 @@ class FamilyHealthUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $keluarga;
-    public $message;
+    public KeluargaPasien $keluarga;
+    public string $message;
 
     /**
      * Create a new event instance.
